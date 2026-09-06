@@ -330,6 +330,75 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
+        /* ===== FORMAT CETAK DPS FOLIO ===== */
+        #dpsPrintContainer { display:none; }
+        @media print {
+            @page { size: 330mm 215mm; margin: 4mm 5mm; }
+            body.printing-dps #printableArea {
+                position: static !important; width: 100% !important; padding: 0 !important;
+                margin: 0 !important; border: 0 !important; box-shadow: none !important;
+            }
+            body.printing-dps #dpsPrintContainer {
+                display: block !important; width: 100%; margin: 0; padding: 0;
+                font-family: Arial, Helvetica, sans-serif; color: #000;
+            }
+            body.printing-dps #dpsPrintContainer .dps-first-page-title {
+                text-align:center; font-weight:700; font-size:17px; line-height:1.1;
+                margin: 0 0 2.5mm 0; text-transform:uppercase;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta {
+                display:grid; grid-template-columns:1fr 1fr; column-gap:16mm;
+                font-size:10px; line-height:1.15; font-weight:700; margin-bottom:2.5mm;
+            }
+            body.printing-dps #dpsPrintContainer table {
+                width:100%; border-collapse:collapse; table-layout:fixed;
+                font-size:9.2px; line-height:1.05; margin:0;
+            }
+            body.printing-dps #dpsPrintContainer thead { display:table-header-group; }
+            body.printing-dps #dpsPrintContainer tr { break-inside:avoid; page-break-inside:avoid; }
+            body.printing-dps #dpsPrintContainer th {
+                border:1px solid #000; padding:2.2px 2px; text-align:center;
+                vertical-align:middle; font-weight:700; height:8mm;
+            }
+            body.printing-dps #dpsPrintContainer td {
+                border:1px solid #000; padding:2.0px 2.5px; vertical-align:middle;
+                height:5.8mm; overflow:hidden;
+            }
+            body.printing-dps #dpsPrintContainer .c-no { width:4%; text-align:center; }
+            body.printing-dps #dpsPrintContainer .c-nik { width:13%; text-align:center; white-space:nowrap; }
+            body.printing-dps #dpsPrintContainer .c-nama { width:17%; }
+            body.printing-dps #dpsPrintContainer .c-tempat { width:9%; }
+            body.printing-dps #dpsPrintContainer .c-tgl { width:9%; text-align:center; }
+            body.printing-dps #dpsPrintContainer .c-umur { width:6%; text-align:center; }
+            body.printing-dps #dpsPrintContainer .c-kawin { width:8%; text-align:center; }
+            body.printing-dps #dpsPrintContainer .c-jk { width:6%; text-align:center; }
+            body.printing-dps #dpsPrintContainer .c-alamat { width:21%; }
+            body.printing-dps #dpsPrintContainer .c-ket { width:7%; }
+            body.printing-dps #dpsPrintContainer .dps-summary {
+                display:grid; grid-template-columns:1fr 1fr 1fr; gap:8mm;
+                font-size:9.5px; font-weight:700; margin-top:2.5mm;
+            }
+            body.printing-dps #dpsPrintContainer .dps-notes {
+                font-size:9px; line-height:1.2; margin-top:2mm;
+            }
+            body.printing-dps #dpsPrintContainer .dps-signature {
+                break-inside:avoid; page-break-inside:avoid; margin-top:4mm;
+                font-size:9.5px; font-weight:700; text-align:center;
+            }
+            body.printing-dps #dpsPrintContainer .dps-sign-grid {
+                display:grid; grid-template-columns:repeat(4,1fr); gap:12mm; margin-top:2mm;
+            }
+            body.printing-dps #dpsPrintContainer .dps-sign-space { height:12mm; }
+            body.printing-dps #dpsPrintContainer .dps-sign-line {
+                border-top:1px solid #000; padding-top:1mm; font-size:9px;
+            }
+            body.printing-dps #dpsPrintContainer .dps-page-note {
+                text-align:right; font-size:7.5px; margin-top:1mm;
+            }
+            body.printing-dps #tableScrollContainer,
+            body.printing-dps #printHeader { display:none !important; }
+        }
+
         @media print {
             body * { visibility: hidden; }
             #printableArea, #printableArea * { visibility: visible; }
@@ -353,46 +422,10 @@
             #printableArea .row-index {
                 width: 32px !important;
             }
-
-            /* Tanda tangan hanya tampil saat Cetak / Simpan PDF */
-            #printSignatureArea {
-                display: block !important;
-                page-break-inside: avoid;
-                break-inside: avoid;
-                margin-top: 28px !important;
-                padding-top: 10px !important;
-            }
-            #printSignatureArea .signature-grid {
-                display: grid !important;
-                grid-template-columns: 1fr 1.35fr 1.35fr 1fr !important;
-                gap: 20px !important;
-                align-items: start !important;
-            }
-            #printSignatureArea .signature-box {
-                text-align: center !important;
-                font-size: 11px !important;
-                line-height: 1.25 !important;
-                min-height: 150px !important;
-            }
-            #printSignatureArea .signature-space { height: 72px !important; }
-            #printSignatureArea .signature-line {
-                width: 75% !important;
-                margin: 0 auto !important;
-                border-top: 1px dotted #000 !important;
-                height: 1px !important;
-            }
-            #printSignatureArea .signature-name {
-                font-weight: 700 !important;
-                margin-top: 4px !important;
-            }
         }
-
-        #printSignatureArea { display:none; }
     </style>
 
 <style id="adminTransitionStyles">
-#publicTransitionOverlay{position:fixed;inset:0;z-index:99998;display:none;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,rgba(150,15,50,.96),rgba(45,0,18,.99));backdrop-filter:blur(5px);}
-#publicTransitionOverlay.show{display:flex;animation:adminFadeIn .25s ease-out;}
 #adminTransitionOverlay{position:fixed;inset:0;z-index:99999;display:none;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,rgba(150,15,50,.96),rgba(45,0,18,.99));backdrop-filter:blur(5px);}
 #adminTransitionOverlay.show{display:flex;animation:adminFadeIn .25s ease-out;}
 .admin-transition-card{text-align:center;color:#fff;width:min(430px,90vw);padding:34px 28px;border-radius:24px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.22);box-shadow:0 25px 80px rgba(0,0,0,.35);overflow:hidden;}
@@ -607,7 +640,7 @@
                             <i class="fas fa-file-excel me-1"></i> Ekstrak Excel
                         </button>
                         <button class="btn btn-dark btn-sm fw-bold px-3 shadow-sm" onclick="printFolioLandscape()">
-                            <i class="fas fa-print me-1"></i> Cetak / Simpan PDF
+                            <i class="fas fa-print me-1"></i> Cetak Lanskap
                         </button>
                     </div>
                 </div>
@@ -628,38 +661,6 @@
                     </table>
                 </div>
                 
-                <!-- Tanda tangan resmi: hanya muncul pada Cetak / Simpan PDF -->
-                <div id="printSignatureArea" aria-hidden="true">
-                    <div class="signature-grid">
-                        <div class="signature-box">
-                            <div>Pantarlih</div>
-                            <div class="signature-space"></div>
-                            <div class="signature-line"></div>
-                        </div>
-                        <div class="signature-box">
-                            <div>Diketahui,</div>
-                            <div class="mt-3">Panitia Pemungutan Suara (PPS)</div>
-                            <div>Ketua</div>
-                            <div class="signature-space"></div>
-                            <div class="signature-line"></div>
-                        </div>
-                        <div class="signature-box">
-                            <div>Diketahui,</div>
-                            <div class="mt-3">Badan Permusyawaratan Desa (BPD)</div>
-                            <div>Ketua</div>
-                            <div class="signature-space"></div>
-                            <div class="signature-line"></div>
-                        </div>
-                        <div class="signature-box">
-                            <div>Payo Lebar, <span id="printSignatureDate">September 2026</span></div>
-                            <div>Yang Memberikan Keterangan</div>
-                            <div class="signature-space"></div>
-                            <div class="signature-line"></div>
-                            <div class="signature-name">Ketua RT.</div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top no-print flex-wrap gap-2" id="paginationContainer">
                     <div class="d-flex align-items-center gap-2">
                         <small class="text-muted" id="pageInfo">Menampilkan data...</small>
@@ -693,11 +694,14 @@
                 <div class="alert alert-light border shadow-sm py-3 px-3 mb-4 rounded-3 text-dark fw-bold text-uppercase" style="font-size: 0.95rem;">
                     "SELAMAT DATANG DI PORTAL RESMI PILKADES PAYO LEBAR TAHUN 2026"
                 </div>
-                <p class="text-secondary small mb-4">Silakan masuk untuk melihat portal publikasi.</p>
-
+                <p class="text-secondary small mb-4">Silakan pilih akses masuk ke dalam portal:</p>
+                
                 <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-danger btn-lg fw-bold shadow" onclick="enterPublicPortal()" style="background: var(--kpu-secondary);">
-                        <i class="fas fa-arrow-right me-2"></i> MASUK
+                    <button type="button" class="btn btn-danger btn-lg fw-bold shadow" data-bs-dismiss="modal" style="background: var(--kpu-secondary);">
+                        <i class="fas fa-users me-2"></i> MASUK SEBAGAI PUBLIK
+                    </button>
+                    <button type="button" class="btn btn-warning btn-lg fw-bold text-dark shadow-sm" onclick="openAdminLoginFromPopup()">
+                        <i class="fas fa-lock me-2"></i> MASUK SEBAGAI ADMIN
                     </button>
                 </div>
             </div>
@@ -1661,57 +1665,15 @@
         document.getElementById('panelRowPisahKK').classList.toggle('d-none', !isVoterSheet || val !== '7');
     }
 
-    function isBirthDateColumn(header) {
-        const n = String(header || '').toUpperCase().trim();
-        return n.includes('TANGGAL LAHIR') ||
-               n.includes('TGL LAHIR') ||
-               n.includes('DATE OF BIRTH') ||
-               n === 'TTL TANGGAL';
-    }
-
-    function toDateInputValue(val) {
-        if (val === null || val === undefined || val === '') return '';
-        const s = String(val).trim();
-        let m = s.match(/^(\\d{1,2})[\\/\\-](\\d{1,2})[\\/\\-](\\d{4})$/);
-        if (m) return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
-        m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})/);
-        if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-        return '';
-    }
-
-    function fromDateInputValue(val) {
-        if (!val) return '';
-        const m = String(val).match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
-        return m ? `${m[3]}/${m[2]}/${m[1]}` : String(val);
-    }
-
     function buildDynamicRowEditFields() {
         const container = document.getElementById('dynamicRowEditFieldsContainer');
         container.innerHTML = '';
-        const headers = currentRawData[0] || [];
-
-        headers.forEach((header, idx) => {
-            const colName = String(header || '');
-            const rawVal = editingTargetRowData ? (editingTargetRowData[idx] ?? '') : '';
-            const dateField = isBirthDateColumn(colName);
-
-            const colDiv = document.createElement('div');
+        currentRawData[0].forEach((header, idx) => {
+            let colName = String(header);
+            let val = editingTargetRowData ? (editingTargetRowData[idx] || '') : '';
+            let colDiv = document.createElement('div');
             colDiv.className = 'col-md-6';
-
-            const label = document.createElement('label');
-            label.className = 'form-label small fw-bold text-uppercase';
-            label.textContent = colName + ':';
-            colDiv.appendChild(label);
-
-            const input = document.createElement('input');
-            input.className = 'form-control form-control-sm dynamic-row-edit-input';
-            input.dataset.colIndex = String(idx);
-            input.type = dateField ? 'date' : 'text';
-            input.value = dateField ? toDateInputValue(rawVal) : String(rawVal ?? '');
-
-            if (dateField) input.title = 'Tanggal disimpan ke Google Sheet dalam format dd/mm/yyyy';
-
-            colDiv.appendChild(input);
+            colDiv.innerHTML = `<label class="form-label small fw-bold text-uppercase">${colName}:</label><input type="text" class="form-control form-control-sm dynamic-row-edit-input" data-col-index="${idx}" value="${val}">`;
             container.appendChild(colDiv);
         });
     }
@@ -1780,10 +1742,7 @@
         if (actionType === 'U') {
             let updatedValues = [...editingTargetRowData];
             document.querySelectorAll('.dynamic-row-edit-input').forEach(input => {
-                const idx = parseInt(input.getAttribute('data-col-index'), 10);
-                updatedValues[idx] = input.type === 'date'
-                    ? fromDateInputValue(input.value)
-                    : input.value;
+                updatedValues[parseInt(input.getAttribute('data-col-index'))] = input.value;
             });
 
             // Khusus pilih Coklit 6: pertahankan semua data lama, ubah kode Coklit
@@ -2431,25 +2390,6 @@
         }
     }
 
-    function enterPublicPortal() {
-        const welcomeModalEl = document.getElementById('welcomePopupModal');
-        const welcomeModal = bootstrap.Modal.getInstance(welcomeModalEl);
-        if (welcomeModal) welcomeModal.hide();
-
-        const overlay = document.getElementById('publicTransitionOverlay');
-        if (overlay) {
-            overlay.classList.add('show');
-            overlay.setAttribute('aria-hidden','false');
-        }
-
-        setTimeout(() => {
-            if (overlay) {
-                overlay.classList.remove('show');
-                overlay.setAttribute('aria-hidden','true');
-            }
-        }, 700);
-    }
-
     function openAdminLoginFromPopup() {
         const welcomeModalEl = document.getElementById('welcomePopupModal');
         const welcomeModal = bootstrap.Modal.getInstance(welcomeModalEl);
@@ -2588,33 +2528,158 @@
         });
     }
 
+    function dpsPrintText(value) {
+        return String(value ?? '').replace(/\s+/g, ' ').trim();
+    }
+
+    function dpsPrintDate(value) {
+        if (value === null || value === undefined || value === '') return '';
+        const s = dpsPrintText(value);
+        // Keep Spreadsheet-style DD/MM/YYYY and remove any time portion.
+        const m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
+        if (m) return String(m[1]).padStart(2,'0') + '/' + String(m[2]).padStart(2,'0') + '/' + m[3];
+        const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (iso) return iso[3] + '/' + iso[2] + '/' + iso[1];
+        const dt = new Date(value);
+        if (!isNaN(dt.getTime())) return String(dt.getDate()).padStart(2,'0') + '/' + String(dt.getMonth()+1).padStart(2,'0') + '/' + dt.getFullYear();
+        return s.split(/[ T]/)[0];
+    }
+
+    function dpsPrintNik(value) {
+        const nik = dpsPrintText(value).replace(/\D/g, '');
+        if (!nik) return '';
+        // Partial masking only: 6 first digits + XXX + remaining digits.
+        return nik.length >= 10 ? nik.slice(0,6) + 'XXX' + nik.slice(9) : (nik.length > 6 ? nik.slice(0,6) + 'XXX' : nik);
+    }
+
+    function dpsPrintFind(headers, patterns) {
+        return voterHeaderIndex(headers, patterns);
+    }
+
+    function dpsPrintKawin(value) {
+        const v = dpsPrintText(value).toUpperCase();
+        if (v.includes('BELUM') || v === 'B') return 'B';
+        if (v.includes('SUDAH') || v === 'S') return 'S';
+        if (v.includes('PERNAH') || v === 'P') return 'P';
+        return v;
+    }
+
+    function dpsPrintGender(value) {
+        const v = dpsPrintText(value).toUpperCase();
+        if (v === 'L' || v.includes('LAKI')) return 'L';
+        if (v === 'P' || v.includes('PEREM')) return 'P';
+        return v;
+    }
+
+    function dpsPrintAddress(row, headers) {
+        const rtIdx = dpsPrintFind(headers, ['RT','RT DOMISILI','RT ALAMAT']);
+        const dusunIdx = dpsPrintFind(headers, ['DUSUN','LINGKUNGAN']);
+        const rt = rtIdx !== -1 ? dpsPrintText(row[rtIdx]) : '';
+        const dusun = dusunIdx !== -1 ? dpsPrintText(row[dusunIdx]) : '';
+        const out = [];
+        if (rt) out.push('RT ' + rt.replace(/^RT\.?\s*/i,''));
+        if (dusun) out.push('Dusun ' + dusun.replace(/^Dusun\s*/i,''));
+        return out.join(' ');
+    }
+
+    function buildDpsPrintHtml() {
+        const headers = currentRawData[0] || [];
+        if (!headers.length) throw new Error('Data DPS belum tersedia.');
+
+        // CETAK WAJIB MENGIKUTI FILTER YANG SEDANG DIPAKAI DI DASHBOARD.
+        // Jangan kembali ke currentRawData karena itu berarti semua RT tercetak.
+        const activeRt = document.getElementById('filterRt')?.value?.trim() || '';
+        const activeKeyword = document.getElementById('filterKeyword')?.value?.trim() || '';
+        const activeCoklit = document.getElementById('filterCoklit')?.value?.trim() || '';
+        let rows = (Array.isArray(filteredData) && filteredData.length > 0)
+            ? filteredData.slice(1)
+            : currentRawData.slice(1);
+
+        // Pengaman tambahan: bila RT dipilih, cetak hanya RT tersebut.
+        // Ini sengaja dilakukan lagi di fungsi cetak agar tidak mungkin mencetak semua RT
+        // walaupun filteredData belum sempat ter-render ulang.
+        const rtIdxForPrint = dpsPrintFind(headers, ['RT','RT DOMISILI','RT ALAMAT']);
+        const coklitIdxForPrint = dpsPrintFind(headers, ['KODE COKLIT','COKLIT']);
+        if (activeRt && rtIdxForPrint !== -1) {
+            rows = rows.filter(r => dpsPrintText(r[rtIdxForPrint]).replace(/^RT\.?\s*/i,'') === activeRt.replace(/^RT\.?\s*/i,''));
+        }
+        if (activeCoklit && coklitIdxForPrint !== -1) {
+            rows = rows.filter(r => dpsPrintText(r[coklitIdxForPrint]) === activeCoklit);
+        }
+
+        const coklitIdx = dpsPrintFind(headers, ['KODE COKLIT','COKLIT']);
+        const nikIdx = dpsPrintFind(headers, ['NIK','NO KTP','NOMOR INDUK KEPENDUDUKAN']);
+        const namaIdx = dpsPrintFind(headers, ['NAMA LENGKAP','NAMA']);
+        const tempatIdx = dpsPrintFind(headers, ['TEMPAT LAHIR']);
+        const tglIdx = dpsPrintFind(headers, ['TANGGAL LAHIR','TGL LAHIR']);
+        const umurIdx = dpsPrintFind(headers, ['UMUR','USIA']);
+        // STS KAWIN is deliberately first priority, as requested.
+        const kawinIdx = dpsPrintFind(headers, ['STS KAWIN','STATUS PERKAWINAN','STATUS KAWIN','PERKAWINAN']);
+        const jkIdx = dpsPrintFind(headers, ['JENIS KELAMIN','JK','L/P']);
+
+        const msRows = rows.filter(r => {
+            if (!r || r.every(v => dpsPrintText(v) === '')) return false; // blank separator rows
+            const raw = coklitIdx === -1 ? '' : dpsPrintText(r[coklitIdx]).toUpperCase();
+            const code = (raw.match(/^(0|1|2|3|4|5|6|7|8|U|B)/) || [raw])[0];
+            return msCodes.includes(code);
+        });
+
+        const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        let html = '<div id="dpsPrintContainer">';
+        html += '<div class="dps-first-page-title">DAFTAR PEMILIH SEMENTARA (DPS)<br>PEMILIHAN KEPALA DESA TAHUN 2026</div>';
+        html += '<div class="dps-meta"><div>DESA : PAYO LEBAR<br>KECAMATAN : SINGKUT</div><div>KABUPATEN : SAROLANGUN<br>PROVINSI : JAMBI</div></div>';
+        html += '<table><thead><tr>';
+        html += '<th class="c-no">NO</th><th class="c-nik">NIK</th><th class="c-nama">NAMA PEMILIH</th><th class="c-tempat">TEMPAT LAHIR</th><th class="c-tgl">TANGGAL,<br>BULAN DAN<br>TAHUN LAHIR</th><th class="c-umur">UMUR<br>(TAHUN)</th><th class="c-kawin">STATUS<br>PERKAWINAN<br>(B/S/P)</th><th class="c-jk">JENIS<br>KELAMIN</th><th class="c-alamat">ALAMAT TEMPAT TINGGAL<br>RT / DUSUN</th><th class="c-ket">KET</th></tr></thead><tbody>';
+        let laki = 0, perempuan = 0;
+        msRows.forEach((r,i) => {
+            const jk = jkIdx !== -1 ? dpsPrintGender(r[jkIdx]) : '';
+            if (jk === 'L') laki++; else if (jk === 'P') perempuan++;
+            html += '<tr>';
+            html += '<td class="c-no" style="text-align:center">' + (i+1) + '</td>';
+            html += '<td class="c-nik" style="text-align:center">' + esc(nikIdx !== -1 ? dpsPrintNik(r[nikIdx]) : '') + '</td>';
+            html += '<td class="c-nama">' + esc(namaIdx !== -1 ? r[namaIdx] : '') + '</td>';
+            html += '<td class="c-tempat">' + esc(tempatIdx !== -1 ? r[tempatIdx] : '') + '</td>';
+            html += '<td class="c-tgl" style="text-align:center">' + esc(tglIdx !== -1 ? dpsPrintDate(r[tglIdx]) : '') + '</td>';
+            html += '<td class="c-umur" style="text-align:center">' + esc(umurIdx !== -1 ? r[umurIdx] : '') + '</td>';
+            html += '<td class="c-kawin" style="text-align:center">' + esc(kawinIdx !== -1 ? dpsPrintKawin(r[kawinIdx]) : '') + '</td>';
+            html += '<td class="c-jk" style="text-align:center">' + esc(jk) + '</td>';
+            html += '<td class="c-alamat">' + esc(dpsPrintAddress(r, headers)) + '</td>';
+            html += '<td class="c-ket"></td></tr>';
+        });
+        html += '</tbody></table>';
+        html += '<div class="dps-summary"><div>JUMLAH DPS LAKI-LAKI : <u>' + laki + '</u></div><div>JUMLAH DPS PEREMPUAN : <u>' + perempuan + '</u></div><div>JUMLAH TOTAL DPS (1+2) : <u>' + msRows.length + '</u></div></div>';
+        html += '<div class="dps-notes"><b>KETERANGAN :</b><br>B = Belum Kawin<br>S = Sudah Kawin<br>P = Pernah Kawin<br>LK = Laki-laki<br>Pr = Perempuan</div>';
+        html += '<div class="dps-signature"><div>PANITIA PEMILIHAN KEPALA DESA</div><div class="dps-sign-grid"><div>KETUA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>WAKIL KETUA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>SEKRETARIS<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>KETUA, ANGGOTA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div></div></div>';
+        html += '</div>';
+        return html;
+    }
+
     function printFolioLandscape() {
-        // Print ADMIN tetap menggunakan data yang tampil, tetapi NKK/NIK
-        // wajib disensor pada hasil cetak. Data mentah Google Sheet tidak disentuh.
+        // DPS memakai template resmi khusus. Sheet lain tetap memakai mekanisme print lama.
+        if (activeSheet === 'DPS (SEMENTARA)') {
+            const area = document.getElementById('printableArea');
+            const oldHTML = area ? area.innerHTML : '';
+            try {
+                document.body.classList.add('printing-dps');
+                if (area) area.innerHTML = buildDpsPrintHtml();
+                window.print();
+            } finally {
+                if (area) area.innerHTML = oldHTML;
+                document.body.classList.remove('printing-dps');
+            }
+            return;
+        }
+
         const table = document.getElementById('dataTable');
         const originalTableHTML = table ? table.innerHTML : '';
-
         document.getElementById('printSheetName').innerText = activeSheet;
         document.getElementById('printHeader').classList.remove('d-none');
-
-        const bulan = ['Januari','Februari','Maret','April','Mei','Juni',
-                       'Juli','Agustus','September','Oktober','November','Desember'];
-        const now = new Date();
-        const sigDate = document.getElementById('printSignatureDate');
-        if (sigDate) sigDate.textContent = `${bulan[now.getMonth()]} ${now.getFullYear()}`;
-
-        const sigArea = document.getElementById('printSignatureArea');
-        if (sigArea) sigArea.setAttribute('aria-hidden','false');
-
         try {
             maskCurrentTableForPrint();
             window.print();
         } finally {
-            // Kembalikan tampilan admin setelah dialog cetak ditutup.
             if (table) table.innerHTML = originalTableHTML;
             document.getElementById('printHeader').classList.add('d-none');
-            const sigArea = document.getElementById('printSignatureArea');
-            if (sigArea) sigArea.setAttribute('aria-hidden','true');
         }
     }
 
@@ -2670,15 +2735,6 @@
 function toggleHiddenMenu(force){const sidebar=document.getElementById('sidebar'),btn=document.getElementById('menuToggleButton'),back=document.getElementById('menuBackdrop');if(!sidebar)return;const open=typeof force==='boolean'?force:!sidebar.classList.contains('menu-visible');sidebar.classList.toggle('menu-visible',open);if(back)back.classList.toggle('show',open);if(btn){btn.setAttribute('aria-expanded',String(open));btn.innerHTML=open?'<i class="fas fa-times me-1"></i> TUTUP MENU':'<i class="fas fa-bars me-1"></i> MENU';}}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleHiddenMenu(false);});
 </script>
-
-<div id="publicTransitionOverlay" aria-hidden="true">
-  <div class="admin-transition-card">
-    <div class="admin-transition-icon"><i class="fas fa-landmark"></i></div>
-    <div class="admin-transition-title">MEMBUKA PORTAL</div>
-    <div class="admin-transition-subtitle">Menyiapkan dashboard publik...</div>
-    <div class="admin-slides"></div>
-  </div>
-</div>
 
 <div id="adminTransitionOverlay" aria-hidden="true">
   <div class="admin-transition-card">
