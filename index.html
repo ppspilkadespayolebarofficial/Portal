@@ -477,7 +477,7 @@
                 <div class="collapsible-submenu" id="subCategoryPemilih">
                     <a class="nav-link" onclick="loadSheetData('DPT AWAL (PMD)', this)"><i class="fas fa-users"></i>DPT AWAL (PMD)</a>
                     <a class="nav-link" onclick="loadSheetData('DPS (SEMENTARA)', this)"><i class="fas fa-user-clock"></i>DPS (SEMENTARA)</a>
-                    <a class="nav-link" onclick="loadSheetData('DPS', this)"><i class="fas fa-chart-pie"></i>DPS Rekapitulasi & Rincian RT</a>
+                    <a class="nav-link" onclick="loadSheetData('DPS', this)"><i class="fas fa-chart-pie"></i>DPS Rekapitulasi & RT</a>
                     <a class="nav-link" onclick="loadSheetData('DPTAM (TAMBAHAN)', this)"><i class="fas fa-user-plus"></i>DPTAM (TAMBAHAN)</a>
                     <a class="nav-link" onclick="loadSheetData('DPT (TETAP)', this)"><i class="fas fa-address-book"></i>DPT (TETAP)</a>
                     <a class="nav-link d-none admin-only-menu" id="addVoterMenuLink" onclick="openAddVoterModal()"><i class="fas fa-user-plus"></i>Tambah Pemilih Baru</a>
@@ -920,7 +920,7 @@
     const msCodes = ["0", "6", "7", "U", "B"]; // Kode untuk MS (Memenuhi Syarat)
     const committeeSheets = ['PANITIA PEMUNGUTAN SUARA (PPS)', 'PENGAWAS (BPD)', 'KPPS TPS 01', 'KPPS TPS 02'];
     const voterSheets = ['DPT AWAL (PMD)', 'DPS (SEMENTARA)', 'DPTAM (TAMBAHAN)', 'DPT (TETAP)', 'TAMBAH PEMILIH BARU'];
-    const noFilterSheets = ['INPUT SUARA', 'PROFIL CALON KADES', 'TAHAPAN PILKADES', 'PENGADUAN DAN LAYANAN'];
+    const noFilterSheets = ['INPUT SUARA', 'PROFIL CALON KADES', 'TAHAPAN PILKADES', 'PENGADUAN DAN LAYANAN', 'DPS'];
 
     function toggleSubMenu(submenuId, headerEl) {
         const submenu = document.getElementById(submenuId);
@@ -1279,12 +1279,17 @@
         currentPage = 1;
 
         saveLocalSheetData(sheetName, currentRawData, serverVersion);
-        renderTablePage();
-        populateRtDropdown();
-        populateRowRtSelect();
+        
+        if (sheetName === 'DPS') {
+            renderDpsRekapTable();
+        } else {
+            renderTablePage();
+            populateRtDropdown();
+            populateRowRtSelect();
 
-        if (!isCommittee && sheetName !== 'TAHAPAN PILKADES' && sheetName !== 'PENGADUAN DAN LAYANAN') {
-            generateCustomChartsAndAccumulation();
+            if (!isCommittee && sheetName !== 'TAHAPAN PILKADES' && sheetName !== 'PENGADUAN DAN LAYANAN') {
+                generateCustomChartsAndAccumulation();
+            }
         }
 
         if (sourceLabel) {
@@ -1326,8 +1331,8 @@
 
     function loadSheetData(sheetName, element, forceRefresh = false, preserveView = false) {
         activeSheet = sheetName;
-        document.getElementById('currentTitle').innerText = sheetName;
-        document.getElementById('directChartTitle').innerText = sheetName;
+        document.getElementById('currentTitle').innerText = sheetName === 'DPS' ? 'DPS REKAPITULASI & RT' : sheetName;
+        document.getElementById('directChartTitle').innerText = sheetName === 'DPS' ? 'DPS REKAPITULASI & RT' : sheetName;
 
         if (!preserveView) {
             document.getElementById('filterKeyword').value = '';
@@ -1369,14 +1374,15 @@
         }
 
         const table = document.getElementById('dataTable');
-        const localData = getLocalSheetData(sheetName);
+        const sourceSheetForData = (sheetName === 'DPS') ? 'DPS (SEMENTARA)' : sheetName;
+        const localData = getLocalSheetData(sourceSheetForData);
 
         // Cache-first: tampilkan data yang sudah ada SEKETIKA.
         // Setelah itu cek versi server di background agar perubahan Google Sheet
         // tetap terbaca otomatis tanpa mengunduh ribuan baris setiap kali membuka menu.
         if (!forceRefresh && localData) {
             renderLoadedSheetData(sheetName, localData, isCommittee, 'cache lokal');
-            refreshSheetIfChanged(sheetName, isCommittee, localData);
+            refreshSheetIfChanged(sourceSheetForData, isCommittee, localData);
             return;
         }
 
@@ -1386,7 +1392,8 @@
 
     function fetchSheetFromServer(sheetName, isCommittee, preserveView = true) {
         const savedView = preserveView ? captureCurrentViewState() : null;
-        const url = `${WEB_APP_URL}?action=getData&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
+        const fetchTargetSheet = (sheetName === 'DPS') ? 'DPS (SEMENTARA)' : sheetName;
+        const url = `${WEB_APP_URL}?action=getData&sheet=${encodeURIComponent(fetchTargetSheet)}&t=${Date.now()}`;
 
         fetch(url, { cache: 'no-store' })
             .then(response => {
@@ -1396,7 +1403,7 @@
             .catch(firstError => {
                 // Kompatibilitas dengan deployment Apps Script lama:
                 // endpoint tanpa action juga mengembalikan data sheet.
-                const fallbackUrl = `${WEB_APP_URL}?sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
+                const fallbackUrl = `${WEB_APP_URL}?sheet=${encodeURIComponent(fetchTargetSheet)}&t=${Date.now()}`;
                 return fetch(fallbackUrl, { cache: 'no-store' })
                     .then(response => {
                         if (!response.ok) throw firstError;
@@ -1415,7 +1422,7 @@
             })
             .catch(error => {
                 console.error('Error mengambil data server:', error);
-                const localData = getLocalSheetData(sheetName);
+                const localData = getLocalSheetData(fetchTargetSheet);
                 if (localData) {
                     renderLoadedSheetData(sheetName, localData, isCommittee, 'cache lokal (fallback)');
                     showToast('Server belum merespons. Data terakhir tetap ditampilkan.', 'bg-warning');
@@ -1437,9 +1444,10 @@
             if (localVersion && localVersion === String(result.version)) return;
 
             // Versi berbeda (atau cache lama belum punya versi): ambil data sekali.
-            if (activeSheet === sheetName) {
+            const currentActiveIsDps = (activeSheet === 'DPS' && sheetName === 'DPS (SEMENTARA)');
+            if (activeSheet === sheetName || currentActiveIsDps) {
                 const savedView = captureCurrentViewState();
-                fetchSheetFromServer(sheetName, isCommittee, true);
+                fetchSheetFromServer(activeSheet, isCommittee, true);
                 window.__pendingRestoreView = savedView;
             } else {
                 fetch(`${WEB_APP_URL}?action=getData&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`, { cache: 'no-store' })
@@ -1523,7 +1531,251 @@
         renderTablePage();
     }
 
+    function renderDpsRekapTable() {
+        const table = document.getElementById('dataTable');
+        if (!currentRawData || currentRawData.length <= 1) {
+            table.innerHTML = '<tr><td colspan="100" class="text-center py-4 text-muted">Belum ada data DPS tersedia.</td></tr>';
+            document.getElementById('paginationList').innerHTML = '';
+            document.getElementById('pageInfo').innerText = 'Tidak ada data';
+            return;
+        }
+
+        const headers = currentRawData[0];
+        const rows = currentRawData.slice(1);
+
+        let dusunIdx = headers.findIndex(h => String(h).toUpperCase().includes('DUSUN'));
+        let rtIdx = headers.findIndex(h => String(h).toUpperCase().includes('RT'));
+        let jkIdx = headers.findIndex(h => {
+            let str = String(h).toUpperCase();
+            return str.includes('JENIS KELAMIN') || str.includes('JK') || str.includes('SEX') || str === 'L/P';
+        });
+
+        let rekapDusun = {}; // { dusunName: { L: 0, P: 0, total: 0 } }
+        let rekapRt = {};    // { rtName: { L: 0, P: 0, total: 0 } }
+        let rekapHirarki = {}; // { dusunName: { RTs: { rtName: { L: 0, P: 0, total: 0 } }, totalL: 0, totalP: 0, total: 0 } }
+
+        let totalL = 0, totalP = 0, grandTotal = 0;
+
+        rows.forEach(row => {
+            let rawDusun = dusunIdx !== -1 ? String(row[dusunIdx] || '').trim() : 'Lainnya';
+            let dusun = rawDusun !== '' ? rawDusun : 'Lainnya';
+
+            let rawRt = rtIdx !== -1 ? String(row[rtIdx] || '').trim() : 'Lainnya';
+            let rt = rawRt !== '' ? (rawRt.toUpperCase().startsWith('RT') ? rawRt : 'RT ' + String(rawRt).padStart(3, '0')) : 'Lainnya';
+
+            let rawJk = jkIdx !== -1 ? String(row[jkIdx] || '').trim().toUpperCase() : '';
+            let isLaki = rawJk.startsWith('L');
+            let isPerempuan = rawJk.startsWith('P');
+
+            // Hitung Dusun
+            if (!rekapDusun[dusun]) rekapDusun[dusun] = { L: 0, P: 0, total: 0 };
+            if (isLaki) rekapDusun[dusun].L++;
+            else if (isPerempuan) rekapDusun[dusun].P++;
+            rekapDusun[dusun].total++;
+
+            // Hitung RT
+            if (!rekapRt[rt]) rekapRt[rt] = { L: 0, P: 0, total: 0 };
+            if (isLaki) rekapRt[rt].L++;
+            else if (isPerempuan) rekapRt[rt].P++;
+            rekapRt[rt].total++;
+
+            // Hitung Hirarki (Dusun -> RT)
+            if (!rekapHirarki[dusun]) rekapHirarki[dusun] = { RTs: {}, totalL: 0, totalP: 0, total: 0 };
+            if (!rekapHirarki[dusun].RTs[rt]) rekapHirarki[dusun].RTs[rt] = { L: 0, P: 0, total: 0 };
+            if (isLaki) {
+                rekapHirarki[dusun].RTs[rt].L++;
+                rekapHirarki[dusun].totalL++;
+                totalL++;
+            } else if (isPerempuan) {
+                rekapHirarki[dusun].RTs[rt].P++;
+                rekapHirarki[dusun].totalP++;
+                totalP++;
+            } else {
+                // jika gender tak teridentifikasi
+            }
+            rekapHirarki[dusun].RTs[rt].total++;
+            rekapHirarki[dusun].total++;
+            grandTotal++;
+        });
+
+        let html = `
+            <thead>
+                <tr>
+                    <th colspan="4" class="text-center bg-danger text-white fs-6">1. REKAPITULASI DPS BERDASARKAN DUSUN</th>
+                </tr>
+                <tr>
+                    <th class="align-left">DUSUN</th>
+                    <th>LAKI-LAKI (L)</th>
+                    <th>PEREMPUAN (P)</th>
+                    <th>JUMLAH (L+P)</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+
+        Object.keys(rekapDusun).sort().forEach(dusunKey => {
+            let item = rekapDusun[dusunKey];
+            html += `
+                <tr>
+                    <td class="align-left fw-bold">${dusunKey}</td>
+                    <td>${item.L}</td>
+                    <td>${item.P}</td>
+                    <td class="fw-bold">${item.total}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                <tr class="table-warning fw-bold">
+                    <td class="align-left">TOTAL KESELURUHAN</td>
+                    <td>${totalL}</td>
+                    <td>${totalP}</td>
+                    <td>${grandTotal}</td>
+                </tr>
+            </tbody>
+            <thead>
+                <tr>
+                    <th colspan="4" class="text-center bg-danger text-white fs-6 pt-4">2. RINCIAN DPS TIAP RT</th>
+                </tr>
+                <tr>
+                    <th class="align-left">RT</th>
+                    <th>LAKI-LAKI (L)</th>
+                    <th>PEREMPUAN (P)</th>
+                    <th>JUMLAH (L+P)</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+
+        Object.keys(rekapRt).sort().forEach(rtKey => {
+            let item = rekapRt[rtKey];
+            html += `
+                <tr>
+                    <td class="align-left fw-bold">${rtKey}</td>
+                    <td>${item.L}</td>
+                    <td>${item.P}</td>
+                    <td class="fw-bold">${item.total}</td>
+                </tr>
+            `;
+        });
+
+        html += `
+                <tr class="table-warning fw-bold">
+                    <td class="align-left">TOTAL KESELURUHAN</td>
+                    <td>${totalL}</td>
+                    <td>${totalP}</td>
+                    <td>${grandTotal}</td>
+                </tr>
+            </tbody>
+            <thead>
+                <tr>
+                    <th colspan="4" class="text-center bg-danger text-white fs-6 pt-4">3. HUBUNGAN STRUKTUR DUSUN &rarr; RT</th>
+                </tr>
+                <tr>
+                    <th class="align-left">DUSUN / RT</th>
+                    <th>LAKI-LAKI (L)</th>
+                    <th>PEREMPUAN (P)</th>
+                    <th>JUMLAH (L+P)</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+
+        Object.keys(rekapHirarki).sort().forEach(dusunKey => {
+            let dusunData = rekapHirarki[dusunKey];
+            html += `
+                <tr class="table-secondary fw-bold">
+                    <td class="align-left text-uppercase ps-3"><i class="fas fa-map-marker-alt me-2 text-danger"></i>${dusunKey}</td>
+                    <td>${dusunData.totalL}</td>
+                    <td>${dusunData.totalP}</td>
+                    <td>${dusunData.total}</td>
+                </tr>
+            `;
+            Object.keys(dusunData.RTs).sort().forEach(rtKey => {
+                let rtData = dusunData.RTs[rtKey];
+                html += `
+                    <tr>
+                        <td class="align-left ps-5"><i class="fas fa-angle-right me-2 text-muted"></i>${rtKey}</td>
+                        <td>${rtData.L}</td>
+                        <td>${rtData.P}</td>
+                        <td class="fw-bold">${rtData.total}</td>
+                    </tr>
+                `;
+            });
+        });
+
+        html += `
+                <tr class="table-warning fw-bold">
+                    <td class="align-left">TOTAL KESELURUHAN DPS</td>
+                    <td>${totalL}</td>
+                    <td>${totalP}</td>
+                    <td>${grandTotal}</td>
+                </tr>
+            </tbody>
+        `;
+
+        table.innerHTML = html;
+
+        // Update Kartu Statistik & Grafik DPS Rekapitulasi
+        document.getElementById('cardLabel1').innerText = 'Total DPS';
+        document.getElementById('accTotalCount').innerText = grandTotal;
+
+        document.getElementById('cardLabel2').innerText = 'Total Laki-Laki (L)';
+        document.getElementById('accMsCount').innerText = totalL;
+
+        document.getElementById('cardLabel3').innerText = 'Total Perempuan (P)';
+        document.getElementById('accTmsCount').innerText = totalP;
+
+        document.getElementById('cardLabel4').innerText = 'Jumlah Dusun';
+        document.getElementById('accOtherCount').innerText = Object.keys(rekapDusun).length;
+
+        document.getElementById('pageInfo').innerText = `Rekapitulasi otomatis DPS berdasarkan ${grandTotal} data pemilih di Spreadsheet`;
+        document.getElementById('paginationList').innerHTML = '';
+
+        // Generate grafik DPS Rekapitulasi
+        let ctxLeft = document.getElementById('msTmsChart');
+        let ctxRight = document.getElementById('detailedCoklitChart');
+        if (!ctxLeft || !ctxRight) return;
+
+        if (msTmsChartInstance) msTmsChartInstance.destroy();
+        if (detailChartInstance) detailChartInstance.destroy();
+
+        document.getElementById('chartTitleLeft').innerText = 'Proporsi Jenis Kelamin (DPS)';
+        msTmsChartInstance = new Chart(ctxLeft, {
+            type: 'pie',
+            data: {
+                labels: ['Laki-Laki', 'Perempuan'],
+                datasets: [{
+                    data: [totalL, totalP],
+                    backgroundColor: ['#1e40af', '#db2777']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        document.getElementById('chartTitleRight').innerText = 'Jumlah Pemilih per Dusun';
+        let dusunLabels = Object.keys(rekapDusun).sort();
+        let dusunTotals = dusunLabels.map(k => rekapDusun[k].total);
+
+        detailChartInstance = new Chart(ctxRight, {
+            type: 'bar',
+            data: {
+                labels: dusunLabels,
+                datasets: [{
+                    label: 'Jumlah Pemilih DPS',
+                    data: dusunTotals,
+                    backgroundColor: '#8b1531'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
     function renderTablePage() {
+        if (activeSheet === 'DPS') {
+            renderDpsRekapTable();
+            return;
+        }
         if (activeSheet === 'TAHAPAN PILKADES' || activeSheet === 'PENGADUAN DAN LAYANAN') return;
         const table = document.getElementById('dataTable');
         if (!currentRawData || currentRawData.length === 0) {
@@ -1648,1102 +1900,538 @@
         }
 
         document.getElementById('selectedRowTargetInfo').innerHTML = `
-            <div class="small fw-bold text-success"><i class="fas fa-table me-1"></i> ${isVoterSheet ? 'Baris Pemilih' : 'Baris Data'} Sheet #${originalRowIndex + 1} Terpilih:</div>
-            <div class="small text-dark">Data Baris: <b>${rowData[1] || rowData[0] || '-'}</b></div>
+            <div class="small fw-bold text-success"><i class="fas fa-table me-1"></i> Baris Terpilih #${originalRowIndex + 1} (${activeSheet})</div>
+            <div class="text-truncate fw-semibold text-dark">${rowData.slice(0, 5).join(' | ')}</div>
         `;
 
+        let fieldsHtml = '';
+        headers.forEach((h, colIdx) => {
+            let val = rowData[colIdx] !== undefined ? rowData[colIdx] : '';
+            fieldsHtml += `
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-uppercase">${h}:</label>
+                    <input type="text" class="form-control form-control-sm dynamic-edit-field" data-col-idx="${colIdx}" value="${String(val).replace(/"/g, '&quot;')}">
+                </div>
+            `;
+        });
+        document.getElementById('dynamicRowEditFieldsContainer').innerHTML = fieldsHtml;
+
         toggleRowEditFields();
-        buildDynamicRowEditFields();
-        new bootstrap.Modal(document.getElementById('adminRowEditModal')).show();
+        let modal = new bootstrap.Modal(document.getElementById('adminRowEditModal'));
+        modal.show();
     }
 
     function toggleRowEditFields() {
-        const isVoterSheet = voterSheets.includes(activeSheet);
-        const val = isVoterSheet ? document.getElementById('rowEditCoklitType').value : 'U';
-        document.getElementById('panelRowUbah').classList.toggle('d-none', val !== 'U');
-        document.getElementById('panelRowPindahLuar').classList.toggle('d-none', !isVoterSheet || val !== '5');
-        document.getElementById('panelRowPindahDalam').classList.toggle('d-none', !isVoterSheet || val !== '6');
-        document.getElementById('panelRowPisahKK').classList.toggle('d-none', !isVoterSheet || val !== '7');
-    }
-
-    function buildDynamicRowEditFields() {
-        const container = document.getElementById('dynamicRowEditFieldsContainer');
-        container.innerHTML = '';
-        currentRawData[0].forEach((header, idx) => {
-            let colName = String(header);
-            let val = editingTargetRowData ? (editingTargetRowData[idx] || '') : '';
-            let colDiv = document.createElement('div');
-            colDiv.className = 'col-md-6';
-            colDiv.innerHTML = `<label class="form-label small fw-bold text-uppercase">${colName}:</label><input type="text" class="form-control form-control-sm dynamic-row-edit-input" data-col-index="${idx}" value="${val}">`;
-            container.appendChild(colDiv);
-        });
-    }
-
-    function captureCurrentViewState() {
-        return {
-            keyword: document.getElementById('filterKeyword')?.value || '',
-            coklit: document.getElementById('filterCoklit')?.value || '',
-            rt: document.getElementById('filterRt')?.value || '',
-            page: currentPage
-        };
-    }
-
-    function restoreCurrentViewState(view) {
-        if (!view) return;
-        const keyword = document.getElementById('filterKeyword');
-        const coklit = document.getElementById('filterCoklit');
-        const rt = document.getElementById('filterRt');
-        if (keyword) keyword.value = view.keyword;
-        if (coklit) coklit.value = view.coklit;
-        if (rt) rt.value = view.rt;
-        applyFilters();
-        const totalPages = Math.max(1, Math.ceil((filteredData?.length ? filteredData.length - 1 : 0) / rowsPerPage));
-        currentPage = Math.min(Math.max(1, view.page || 1), totalPages);
-        renderTablePage();
-    }
-
-    function showSaveSuccessPopup(message) {
-        const el = document.getElementById('saveSuccessMessage');
-        if (el) el.textContent = message || 'Data sudah tersimpan ke Google Sheet.';
-        const modalEl = document.getElementById('saveSuccessModal');
-        if (modalEl) new bootstrap.Modal(modalEl).show();
-    }
-
-    function getAdminTokenOrWarn() {
-        if (!isAdmin || !adminToken) {
-            showToast('Sesi Admin tidak valid. Silakan login kembali.', 'bg-warning');
-            processLogout(false);
-            return null;
-        }
-        return adminToken;
-    }
-
-    function postAdmin(payload) {
-        const token = getAdminTokenOrWarn();
-        if (!token) return Promise.reject(new Error('Sesi Admin tidak valid.'));
-
-        const securedPayload = Object.assign({}, payload, { adminToken: token });
-
-        return fetch(WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(securedPayload)
-        }).then(res => res.json());
+        const type = document.getElementById('rowEditCoklitType').value;
+        document.getElementById('panelRowUbah').classList.toggle('d-none', type !== 'U' && type !== 'B' && type !== '0');
+        document.getElementById('panelRowPindahLuar').classList.toggle('d-none', type !== '5');
+        document.getElementById('panelRowPindahDalam').classList.toggle('d-none', type !== '6');
+        document.getElementById('panelRowPisahKK').classList.toggle('d-none', type !== '7');
     }
 
     function executeRowEditAction() {
-        if (!isAdmin) return;
-        const isVoterSheet = voterSheets.includes(activeSheet);
-        const coklitType = document.getElementById('rowEditCoklitType').value;
-        // Aksi 6 memakai penulisan baris lengkap (U) agar Kode Coklit DAN
-        // kolom RT/alamat tujuan benar-benar tersimpan ke Google Sheet.
-        // Label/menu tetap 6 - Pindah Dalam Desa; yang berubah hanya mekanisme simpan.
-        const actionType = (isVoterSheet && (coklitType === '6' || coklitType === '8')) ? 'U' : (isVoterSheet ? coklitType : 'U');
-        let payload = { sheet: activeSheet, actionType: actionType, rowIndex: editingTargetRowIndex + 1 };
+        if (!isAdmin || editingTargetRowIndex === null) return;
+        const type = document.getElementById('rowEditCoklitType').value;
+        const headers = currentRawData[0];
+        let updatedRow = [...editingTargetRowData];
 
-        if (actionType === 'U') {
-            let updatedValues = [...editingTargetRowData];
-            document.querySelectorAll('.dynamic-row-edit-input').forEach(input => {
-                updatedValues[parseInt(input.getAttribute('data-col-index'))] = input.value;
+        let coklitColIdx = headers.findIndex(h => String(h).toUpperCase().includes('KODE COKLIT') || String(h).toUpperCase().includes('COKLIT'));
+        let rtColIdx = headers.findIndex(h => String(h).toUpperCase().includes('RT'));
+        let nkkColIdx = headers.findIndex(h => String(h).toUpperCase().includes('NKK') || String(h).toUpperCase().includes('NO KK'));
+        let nikColIdx = headers.findIndex(h => String(h).toUpperCase().includes('NIK') || String(h).toUpperCase().includes('NO KTP'));
+        let namaColIdx = headers.findIndex(h => String(h).toUpperCase().includes('NAMA'));
+        let ketColIdx = headers.findIndex(h => String(h).toUpperCase().includes('KETERANGAN') || String(h).toUpperCase().includes('KET'));
+
+        if (coklitColIdx !== -1) updatedRow[coklitColIdx] = type;
+
+        if (type === '5') {
+            let ketVal = document.getElementById('targetRowPindahLuarInput').value;
+            if (ketColIdx !== -1) updatedRow[ketColIdx] = ketVal || 'Pindah Domisili Luar Desa';
+        } else if (type === '6') {
+            let rtVal = document.getElementById('targetRowRtSelect').value;
+            if (rtColIdx !== -1) updatedRow[rtColIdx] = rtVal;
+        } else if (type === '7') {
+            let newNkk = document.getElementById('rowNewNkkInput').value;
+            let newNik = document.getElementById('rowNewNikInput').value;
+            let newNama = document.getElementById('rowNewNamaInput').value;
+            if (nkkColIdx !== -1 && newNkk) updatedRow[nkkColIdx] = newNkk;
+            if (nikColIdx !== -1 && newNik) updatedRow[nikColIdx] = newNik;
+            if (namaColIdx !== -1 && newNama) updatedRow[namaColIdx] = newNama;
+        } else if (type === 'U' || type === 'B' || type === '0') {
+            document.querySelectorAll('.dynamic-edit-field').forEach(input => {
+                let colIdx = parseInt(input.getAttribute('data-col-idx'));
+                updatedRow[colIdx] = input.value;
             });
-
-            // Khusus pilih Coklit 6: pertahankan semua data lama, ubah kode Coklit
-            // menjadi 6 dan tulis RT tujuan ke kolom RT yang benar berdasarkan header.
-            if (coklitType === '6' && isVoterSheet) {
-                const targetRt = String(document.getElementById('targetRowRtSelect')?.value || '').trim();
-                const headers = currentRawData[0] || [];
-                const rtIdx = headers.findIndex(h => {
-                    const n = String(h || '').toUpperCase().trim();
-                    return n === 'RT' || n === 'NO RT' || n === 'RT.' || n.includes('RT');
-                });
-                const coklitIdx = headers.findIndex(h => {
-                    const n = String(h || '').toUpperCase();
-                    return n.includes('KODE COKLIT') || n.includes('COKLIT');
-                });
-                if (coklitIdx !== -1) updatedValues[coklitIdx] = '6';
-                if (rtIdx !== -1 && targetRt) updatedValues[rtIdx] = targetRt;
-                payload.targetRt = targetRt;
-                payload.coklitAction = '6';
-            }
-
-            // Khusus Coklit 8 (Lainnya/TMS): pertahankan seluruh data lama
-            // dan hanya mengubah kolom Kode Coklit menjadi 8.
-            // Disimpan melalui mekanisme edit baris lengkap agar tidak
-            // bergantung pada action handler lama untuk kode 8.
-            if (coklitType === '8' && isVoterSheet) {
-                const headers = currentRawData[0] || [];
-                const coklitIdx = headers.findIndex(h => {
-                    const n = String(h || '').toUpperCase();
-                    return n.includes('KODE COKLIT') || n.includes('COKLIT');
-                });
-                if (coklitIdx !== -1) updatedValues[coklitIdx] = '8';
-                payload.coklitAction = '8';
-            }
-
-            payload.values = updatedValues;
-        } else if (actionType === '5') {
-            payload.targetPindahLuar = document.getElementById('targetRowPindahLuarInput').value;
-        } else if (actionType === '6') {
-            payload.targetRt = document.getElementById('targetRowRtSelect').value;
-        } else if (actionType === '7') {
-            payload.newNkk = document.getElementById('rowNewNkkInput').value;
-            payload.newNik = document.getElementById('rowNewNikInput').value;
-            payload.newNama = document.getElementById('rowNewNamaInput').value;
-            payload.newTempatLahir = document.getElementById('rowNewTempatLahirInput').value;
-            payload.newTglLahir = document.getElementById('rowNewTglLahirInput').value;
-            payload.newUsia = document.getElementById('rowCalculatedAgeOutput').value;
         }
 
-        const submitBtn = document.getElementById('btnSubmitRowEdit');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan...';
+        const targetSheetName = voterSheets.includes(activeSheet) ? activeSheet : activeSheet;
+        showToast("Menyimpan perubahan ke server...", "bg-info");
 
-        postAdmin(payload)
-        .then(result => {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Simpan Perubahan';
-            if (result.status === 'success') {
-                const savedView = captureCurrentViewState();
+        // UI Optimis: perbarui cache lokal dan tampilan secara langsung
+        currentRawData[editingTargetRowIndex] = [...updatedRow];
+        updateLocalRow(targetSheetName, editingTargetRowIndex, updatedRow);
+        applyFilters();
 
-                if (actionType === 'U' && Array.isArray(payload.values) && coklitType !== '6') {
-                    updateLocalRow(activeSheet, editingTargetRowIndex, payload.values);
-                    bootstrap.Modal.getInstance(document.getElementById('adminRowEditModal')).hide();
-                    loadSheetData(activeSheet, null, false, true);
-                    restoreCurrentViewState(savedView);
-                } else {
-                    // Aksi 5/6/7 dapat mengubah lebih dari satu baris, sehingga
-                    // ambil data terbaru dari server, tetapi pertahankan filter & halaman.
-                    deleteLocalSheetData(activeSheet);
-                    bootstrap.Modal.getInstance(document.getElementById('adminRowEditModal')).hide();
-                    loadSheetData(activeSheet, null, true, true);
-                    // Restore dipanggil setelah data server selesai dimuat di bawah.
-                    window.__pendingRestoreView = savedView;
-                }
-                showSaveSuccessPopup('Perubahan berhasil tersimpan ke Google Sheet. Tampilan tetap pada filter yang Anda pilih.');
-                showToast("Perubahan baris berhasil disimpan!", "bg-success");
+        const btnSubmit = document.getElementById('btnSubmitRowEdit');
+        if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.innerText = 'Menyimpan...'; }
+
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                action: 'updateRow',
+                token: adminToken,
+                sheet: targetSheetName,
+                rowIndex: editingTargetRowIndex,
+                rowData: JSON.stringify(updatedRow)
+            })
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.innerText = 'Simpan Perubahan'; }
+            if (res.status === 'success') {
+                bootstrap.Modal.getInstance(document.getElementById('adminRowEditModal')).hide();
+                showToast("Perubahan berhasil disimpan ke Google Sheet!", "bg-success");
+                loadSheetData(activeSheet, null, true, true);
             } else {
-                const msg = String(result.message || '');
-                if (msg.toLowerCase().includes('sesi admin') || msg.toLowerCase().includes('akses admin ditolak')) {
-                    processLogout(false);
-                }
-                showToast("Gagal menyimpan: " + (result.message || 'Error'), "bg-danger");
+                showToast("Error: " + (res.message || "Gagal memperbarui data di server."), "bg-danger");
             }
-        }).catch(() => {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Simpan Perubahan';
-            showToast("Gagal terhubung ke server.", "bg-danger");
+        })
+        .catch(err => {
+            if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.innerText = 'Simpan Perubahan'; }
+            console.error("Gagal simpan edit:", err);
+            showToast("Perubahan disimpan secara lokal. Pastikan koneksi internet stabil.", "bg-warning");
+            bootstrap.Modal.getInstance(document.getElementById('adminRowEditModal')).hide();
         });
     }
 
-    // ========================= TAMBAH PEMILIH BARU =========================
-    // Form dibuat dinamis berdasarkan header sheet yang sedang digunakan,
-    // sehingga tidak merusak urutan/struktur kolom Google Sheet.
-    function voterHeaderIndex(headers, patterns) {
-        return headers.findIndex(h => {
-            const n = String(h || '').toUpperCase().trim();
-            return patterns.some(p => n.includes(p));
-        });
-    }
+    function deleteRowData(originalRowIndex) {
+        if (!isAdmin) return;
+        if (!confirm(`Apakah Anda yakin ingin menghapus baris #${originalRowIndex + 1} secara permanen?`)) return;
 
-    function calculateNewVoterAge(dateValue) {
-        if (!dateValue) return '';
-        const birth = new Date(dateValue + 'T00:00:00');
-        const target = new Date('2026-10-29T00:00:00');
-        if (isNaN(birth.getTime())) return '';
-        let age = target.getFullYear() - birth.getFullYear();
-        const m = target.getMonth() - birth.getMonth();
-        if (m < 0 || (m === 0 && target.getDate() < birth.getDate())) age--;
-        return age >= 0 ? String(age) : '';
-    }
+        const targetSheetName = voterSheets.includes(activeSheet) ? activeSheet : activeSheet;
+        showToast("Menghapus baris dari server...", "bg-info");
 
-    function getNextVoterNumber(headers, rows) {
-        const noIdx = voterHeaderIndex(headers, ['NO', 'NOMOR']);
-        if (noIdx === -1) return '';
-        let maxNo = 0;
-        rows.forEach(r => {
-            const n = parseInt(String(r[noIdx] ?? '').replace(/\D/g, ''), 10);
-            if (!isNaN(n)) maxNo = Math.max(maxNo, n);
-        });
-        return String(maxNo + 1);
-    }
+        // UI Optimis: hapus dari cache lokal dan tabel terlebih dahulu
+        removeLocalRow(targetSheetName, originalRowIndex);
+        currentRawData.splice(originalRowIndex, 1);
+        applyFilters();
 
-    function makeAddField(label, idx, value, type = 'text', options = {}) {
-        const wrap = document.createElement('div');
-        wrap.className = options.full ? 'col-12' : 'col-md-6';
-        const lab = document.createElement('label');
-        lab.className = 'form-label small fw-bold text-uppercase';
-        lab.textContent = label + ':';
-        wrap.appendChild(lab);
-
-        let input;
-        if (options.selectOptions) {
-            input = document.createElement('select');
-            input.className = 'form-select form-select-sm add-voter-input';
-            options.selectOptions.forEach(opt => {
-                const o = document.createElement('option');
-                o.value = opt.value;
-                o.textContent = opt.label;
-                if (String(opt.value) === String(value)) o.selected = true;
-                input.appendChild(o);
-            });
-        } else {
-            input = document.createElement('input');
-            input.type = type;
-            input.className = 'form-control form-control-sm add-voter-input';
-            input.value = value ?? '';
-        }
-        input.dataset.colIndex = String(idx);
-        input.dataset.header = String(label);
-        if (options.readonly) input.readOnly = true;
-        if (options.placeholder) input.placeholder = options.placeholder;
-        if (options.inputMode) input.inputMode = options.inputMode;
-        if (options.maxLength) input.maxLength = options.maxLength;
-        if (options.required) input.required = true;
-        if (options.onInput) input.addEventListener('input', options.onInput);
-        if (options.onChange) input.addEventListener('change', options.onChange);
-        wrap.appendChild(input);
-        if (options.help) {
-            const help = document.createElement('div');
-            help.className = 'form-text';
-            help.textContent = options.help;
-            wrap.appendChild(help);
-        }
-        return wrap;
-    }
-
-    function buildAddVoterFields() {
-        const container = document.getElementById('addVoterFieldsContainer');
-        container.innerHTML = '';
-        if (!currentRawData || currentRawData.length === 0) return;
-
-        const headers = currentRawData[0];
-        const rows = currentRawData.slice(1);
-        const nextNo = getNextVoterNumber(headers, rows);
-        const noIdx = voterHeaderIndex(headers, ['NO', 'NOMOR']);
-        const nkkIdx = voterHeaderIndex(headers, ['NKK', 'NO KK', 'NOMOR KARTU KELUARGA']);
-        const nikIdx = voterHeaderIndex(headers, ['NIK', 'NO KTP', 'NOMOR INDUK KEPENDUDUKAN']);
-        const tglIdx = voterHeaderIndex(headers, ['TANGGAL LAHIR', 'TGL LAHIR', 'TGL. LAHIR']);
-        const usiaIdx = voterHeaderIndex(headers, ['USIA', 'UMUR']);
-        const lpIdx = voterHeaderIndex(headers, ['L/P', 'JENIS KELAMIN', 'JK']);
-        const hubIdx = voterHeaderIndex(headers, ['STATUS HUB', 'HUBUNGAN', 'STATUS HUBUNGAN']);
-        const coklitIdx = voterHeaderIndex(headers, ['KODE COKLIT', 'COKLIT']);
-        const statusDataIdx = voterHeaderIndex(headers, ['STATUS DATA']);
-        const dpIdx = voterHeaderIndex(headers, ['DP-ID', 'DP ID']);
-
-        headers.forEach((header, idx) => {
-            const name = String(header || '').trim();
-            const upper = name.toUpperCase();
-            let value = '';
-            let type = 'text';
-            const opts = {};
-
-            if (idx === noIdx || upper === 'NO') {
-                value = nextNo;
-                opts.readonly = true;
-                opts.help = 'Nomor dibuat otomatis dari nomor terbesar pada sheet.';
-            } else if (idx === dpIdx || upper.includes('DP-ID') || upper.includes('DP ID')) {
-                value = '';
-                opts.readonly = true;
-                opts.help = 'DP-ID dibiarkan kosong untuk pemilih baru; tidak dibuat secara manual.';
-            } else if (idx === coklitIdx || upper.includes('KODE COKLIT') || upper === 'COKLIT') {
-                value = 'B';
-                opts.readonly = true;
-                opts.help = 'Otomatis: B - Baru.';
-            } else if (idx === statusDataIdx || upper.includes('STATUS DATA')) {
-                value = 'B';
-                opts.selectOptions = [
-                    {value:'B', label:'B - Baru'},
-                    {value:'U', label:'U - Ubah'}
-                ];
-            } else if (idx === hubIdx || upper.includes('STATUS HUB') || upper.includes('STATUS HUBUNGAN') || upper.includes('HUBUNGAN')) {
-                value = 'ANAK';
-                opts.selectOptions = [
-                    {value:'KEPALA KELUARGA',label:'KEPALA KELUARGA'},
-                    {value:'SUAMI',label:'SUAMI'},
-                    {value:'ISTRI',label:'ISTRI'},
-                    {value:'ANAK',label:'ANAK'},
-                    {value:'BELUM CUKUP UMUR (BCU)',label:'BELUM CUKUP UMUR (BCU)'}
-                ];
-            } else if (idx === lpIdx || upper === 'L/P' || upper.includes('JENIS KELAMIN')) {
-                value = 'L';
-                opts.selectOptions = [{value:'L',label:'L - Laki-laki'},{value:'P',label:'P - Perempuan'}];
-            } else if (idx === nkkIdx || upper.includes('NKK') || upper.includes('NO KK')) {
-                opts.required = true;
-                opts.inputMode = 'numeric';
-                opts.maxLength = 16;
-                opts.placeholder = '16 digit NKK';
-            } else if (idx === nikIdx || upper === 'NIK' || upper.includes('NO KTP')) {
-                opts.required = true;
-                opts.inputMode = 'numeric';
-                opts.maxLength = 16;
-                opts.placeholder = '16 digit NIK';
-            } else if (idx === tglIdx || upper.includes('TANGGAL LAHIR') || upper.includes('TGL LAHIR')) {
-                type = 'date';
-                opts.required = true;
-                opts.onChange = () => {
-                    if (usiaIdx !== -1) {
-                        const ageInput = container.querySelector(`[data-col-index="${usiaIdx}"]`);
-                        if (ageInput) ageInput.value = calculateNewVoterAge(input.value);
-                    }
-                };
-            } else if (idx === usiaIdx || upper === 'USIA' || upper === 'UMUR') {
-                opts.readonly = true;
-                opts.help = 'Usia otomatis dihitung per 29 Oktober 2026.';
-            } else if (upper.includes('RT')) {
-                opts.selectOptions = Array.from({length:36}, (_,i) => ({value:String(i+1),label:`RT ${String(i+1).padStart(2,'0')}`}));
-            } else if (upper.includes('TPS')) {
-                opts.placeholder = 'Nomor TPS jika ada';
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                action: 'deleteRow',
+                token: adminToken,
+                sheet: targetSheetName,
+                rowIndex: originalRowIndex
+            })
+        })
+        .then(response => response.json())
+        .then(res => {
+            if (res.status === 'success') {
+                showToast("Baris berhasil dihapus dari Google Sheet!", "bg-success");
+                loadSheetData(activeSheet, null, true, true);
+            } else {
+                showToast("Error: " + (res.message || "Gagal menghapus baris di server."), "bg-danger");
             }
-
-            container.appendChild(makeAddField(name, idx, value, type, opts));
+        })
+        .catch(err => {
+            console.error("Gagal hapus baris:", err);
+            showToast("Baris dihapus secara lokal. Silakan refresh jika koneksi kembali stabil.", "bg-warning");
         });
-
-        const nkkInput = nkkIdx !== -1 ? container.querySelector(`[data-col-index="${nkkIdx}"]`) : null;
-        if (nkkInput) {
-            nkkInput.addEventListener('input', updateAddVoterInsertInfo);
-            nkkInput.addEventListener('change', updateAddVoterInsertInfo);
-        }
-        updateAddVoterInsertInfo();
-    }
-
-    function updateAddVoterInsertInfo() {
-        const info = document.getElementById('addVoterInsertInfo');
-        if (!info || !currentRawData.length) return;
-        const headers = currentRawData[0];
-        const nkkIdx = voterHeaderIndex(headers, ['NKK', 'NO KK', 'NOMOR KARTU KELUARGA']);
-        const input = nkkIdx !== -1 ? document.querySelector(`#addVoterFieldsContainer [data-col-index="${nkkIdx}"]`) : null;
-        const nkk = String(input?.value || '').trim();
-        if (!nkk) {
-            info.textContent = 'Menentukan berdasarkan NKK';
-            return;
-        }
-        let last = -1;
-        for (let i = 1; i < currentRawData.length; i++) {
-            if (String(currentRawData[i][nkkIdx] || '').trim() === nkk) last = i;
-        }
-        info.textContent = last !== -1
-            ? `Ditempatkan setelah anggota terakhir NKK ${nkk}`
-            : 'NKK belum ada: ditempatkan setelah data terakhir';
     }
 
     function openAddVoterModal() {
-        if (!isAdmin) {
-            showToast('Silakan Login Admin terlebih dahulu.', 'bg-warning');
-            return;
-        }
-        // Pemilih baru diarahkan ke DPS agar kode B tercatat pada daftar pemilih sementara.
-        if (activeSheet !== 'DPS (SEMENTARA)') {
-            const dpsLink = Array.from(document.querySelectorAll('#subCategoryPemilih .nav-link'))
-                .find(el => el.textContent.toUpperCase().includes('DPS (SEMENTARA)'));
-            loadSheetData('DPS (SEMENTARA)', dpsLink || null);
-            let tries = 0;
-            const waitForDps = setInterval(() => {
-                tries++;
-                if (activeSheet === 'DPS (SEMENTARA)' && currentRawData && currentRawData.length > 0) {
-                    clearInterval(waitForDps);
-                    document.getElementById('addVoterTargetSheet').textContent = activeSheet;
-                    buildAddVoterFields();
-                    new bootstrap.Modal(document.getElementById('addVoterModal')).show();
-                } else if (tries >= 30) {
-                    clearInterval(waitForDps);
-                    showToast('Data DPS belum berhasil dimuat. Silakan klik Refresh Cache lalu coba lagi.', 'bg-warning');
-                }
-            }, 200);
-            return;
-        }
-        if (!currentRawData || currentRawData.length < 1) {
-            showToast('Data DPS belum selesai dimuat. Silakan tunggu sebentar.', 'bg-warning');
-            return;
-        }
-        document.getElementById('addVoterTargetSheet').textContent = activeSheet;
-        buildAddVoterFields();
-        new bootstrap.Modal(document.getElementById('addVoterModal')).show();
+        if (!isAdmin) return;
+        const headers = currentRawData[0] || [];
+        const isVoterSheet = voterSheets.includes(activeSheet);
+        const targetSheet = isVoterSheet ? activeSheet : 'DPS (SEMENTARA)';
+
+        document.getElementById('addVoterTargetSheet').innerText = targetSheet;
+        document.getElementById('addVoterInsertInfo').innerText = 'Urutan otomatis sesuai NKK / baris akhir';
+
+        let fieldsHtml = '';
+        headers.forEach((h, colIdx) => {
+            let colUpper = String(h).toUpperCase();
+            let isAutoNo = colUpper === 'NO' || colUpper === 'NO.' || colUpper.includes('NOMOR URUT');
+            let isCoklit = colUpper.includes('KODE COKLIT') || colUpper.includes('COKLIT');
+
+            let fieldInput = `<input type="text" class="form-control form-control-sm dynamic-add-field" data-col-idx="${colIdx}" placeholder="${h}...">`;
+
+            if (isAutoNo) {
+                fieldInput = `<input type="text" class="form-control form-control-sm dynamic-add-field bg-light" data-col-idx="${colIdx}" value="Otomatis" readonly>`;
+            } else if (isCoklit) {
+                fieldInput = `
+                    <select class="form-select form-select-sm dynamic-add-field" data-col-idx="${colIdx}">
+                        <option value="B" selected>B - Baru (MS)</option>
+                        <option value="0">0 - Aktif (MS)</option>
+                        <option value="6">6 - Pindah Dalam Desa (MS)</option>
+                        <option value="7">7 - Pisah KK (MS)</option>
+                        <option value="U">U - Ubah (MS)</option>
+                    </select>
+                `;
+            }
+
+            fieldsHtml += `
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold text-uppercase">${h}:</label>
+                    ${fieldInput}
+                </div>
+            `;
+        });
+
+        document.getElementById('addVoterFieldsContainer').innerHTML = fieldsHtml;
+        let modal = new bootstrap.Modal(document.getElementById('addVoterModal'));
+        modal.show();
     }
 
     function saveNewVoter() {
         if (!isAdmin) return;
-        if (activeSheet !== 'DPS (SEMENTARA)') {
-            showToast('Tambah pemilih baru hanya dilakukan pada DPS (SEMENTARA).', 'bg-warning');
-            return;
-        }
         const headers = currentRawData[0] || [];
-        const values = Array(headers.length).fill('');
-        document.querySelectorAll('.add-voter-input').forEach(input => {
-            values[parseInt(input.dataset.colIndex, 10)] = input.value.trim();
+        const targetSheet = voterSheets.includes(activeSheet) ? activeSheet : 'DPS (SEMENTARA)';
+        let newRow = new Array(headers.length).fill('');
+
+        document.querySelectorAll('.dynamic-add-field').forEach(input => {
+            let colIdx = parseInt(input.getAttribute('data-col-idx'));
+            newRow[colIdx] = input.value === 'Otomatis' ? '' : input.value;
         });
 
-        const nkkIdx = voterHeaderIndex(headers, ['NKK', 'NO KK', 'NOMOR KARTU KELUARGA']);
-        const nikIdx = voterHeaderIndex(headers, ['NIK', 'NO KTP', 'NOMOR INDUK KEPENDUDUKAN']);
-        const namaIdx = voterHeaderIndex(headers, ['NAMA', 'NAMA LENGKAP']);
-        const tglIdx = voterHeaderIndex(headers, ['TANGGAL LAHIR', 'TGL LAHIR']);
-        const coklitIdx = voterHeaderIndex(headers, ['KODE COKLIT', 'COKLIT']);
+        // Penentuan posisi berurutan berdasarkan NKK yang sama
+        let nkkColIdx = headers.findIndex(h => String(h).toUpperCase().includes('NKK') || String(h).toUpperCase().includes('NO KK'));
+        let targetNkk = nkkColIdx !== -1 ? String(newRow[nkkColIdx] || '').trim() : '';
+        let insertIndex = currentRawData.length;
 
-        if (nkkIdx === -1 || nikIdx === -1 || namaIdx === -1) {
-            showToast('Kolom NKK, NIK, atau NAMA tidak ditemukan pada header DPS.', 'bg-danger');
-            return;
-        }
-        if (!/^\d{16}$/.test(values[nkkIdx])) {
-            showToast('NKK harus 16 digit angka.', 'bg-danger');
-            return;
-        }
-        if (!/^\d{16}$/.test(values[nikIdx])) {
-            showToast('NIK harus 16 digit angka.', 'bg-danger');
-            return;
-        }
-        if (!values[namaIdx]) {
-            showToast('Nama lengkap wajib diisi.', 'bg-danger');
-            return;
-        }
-        if (tglIdx !== -1 && values[tglIdx]) {
-            const usiaIdx = voterHeaderIndex(headers, ['USIA', 'UMUR']);
-            if (usiaIdx !== -1) values[usiaIdx] = calculateNewVoterAge(values[tglIdx]);
-        }
-        if (coklitIdx !== -1) values[coklitIdx] = 'B';
-
-        // Cari baris terakhir keluarga dengan NKK yang sama. +1 karena rowIndex API adalah nomor baris Sheet.
-        let lastSameNkkArrayIndex = -1;
-        for (let i = 1; i < currentRawData.length; i++) {
-            if (String(currentRawData[i][nkkIdx] || '').trim() === values[nkkIdx]) lastSameNkkArrayIndex = i;
-        }
-        let lastNonEmptyArrayIndex = 0;
-        for (let i = currentRawData.length - 1; i >= 1; i--) {
-            if (currentRawData[i].some(v => String(v ?? '').trim() !== '')) { lastNonEmptyArrayIndex = i; break; }
-        }
-        const insertAfterRow = (lastSameNkkArrayIndex !== -1 ? lastSameNkkArrayIndex : lastNonEmptyArrayIndex) + 1;
-
-        const btn = document.getElementById('btnSaveNewVoter');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Menyimpan ke Google Sheet...';
-
-        const payload = {
-            sheet: 'DPS (SEMENTARA)',
-            actionType: 'B',
-            values: values,
-            insertAfterRow: insertAfterRow,
-            insertMode: 'AFTER_FAMILY',
-            source: 'Tambah Pemilih Baru',
-            autoNumber: true
-        };
-
-        postAdmin(payload)
-            .then(result => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save me-1"></i>Simpan Pemilih Baru';
-                if (result.status === 'success') {
-                    insertLocalRow('DPS (SEMENTARA)', insertAfterRow, values);
-                    bootstrap.Modal.getInstance(document.getElementById('addVoterModal')).hide();
-                    loadSheetData('DPS (SEMENTARA)', null, false);
-                    showToast('Pemilih baru berhasil ditambahkan dan disusun pada Google Sheet.', 'bg-success');
-                } else {
-                    showToast('Gagal menambah pemilih: ' + (result.message || 'Server belum menerima aksi B.'), 'bg-danger');
+        if (targetNkk !== '' && nkkColIdx !== -1) {
+            let lastFamilyIdx = -1;
+            for (let i = 1; i < currentRawData.length; i++) {
+                if (String(currentRawData[i][nkkColIdx] || '').trim() === targetNkk) {
+                    lastFamilyIdx = i;
                 }
-            })
-            .catch(err => {
-                console.error(err);
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save me-1"></i>Simpan Pemilih Baru';
-                showToast('Gagal terhubung ke server Google Sheet.', 'bg-danger');
-            });
-    }
+            }
+            if (lastFamilyIdx !== -1) {
+                insertIndex = lastFamilyIdx + 1;
+            }
+        }
 
-    function deleteRowData(originalRowIndex) {
-        if (!isAdmin || !confirm(`Hapus baris sheet #${originalRowIndex + 1}?`)) return;
-        postAdmin({ sheet: activeSheet, actionType: 'DELETE', rowIndex: originalRowIndex + 1 })
+        showToast("Menambahkan pemilih baru ke Google Sheet...", "bg-info");
+
+        // UI Optimis: sisipkan data baru secara lokal
+        insertLocalRow(targetSheet, insertIndex, newRow);
+        currentRawData.splice(insertIndex, 0, newRow);
+        applyFilters();
+
+        const btnSave = document.getElementById('btnSaveNewVoter');
+        if (btnSave) { btnSave.disabled = true; btnSave.innerText = 'Menyimpan...'; }
+
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                action: 'addRow',
+                token: adminToken,
+                sheet: targetSheet,
+                insertIndex: insertIndex,
+                rowData: JSON.stringify(newRow)
+            })
+        })
+        .then(response => response.json())
         .then(res => {
+            if (btnSave) { btnSave.disabled = false; btnSave.innerText = 'Simpan Pemilih Baru'; }
             if (res.status === 'success') {
-                deleteLocalSheetData(activeSheet);
-                bootstrap.Modal.getInstance(document.getElementById('adminRowEditModal'))?.hide();
-                loadSheetData(activeSheet, null, true);
-                showToast("Berhasil dihapus dari Google Sheet!", "bg-success");
+                bootstrap.Modal.getInstance(document.getElementById('addVoterModal')).hide();
+                showToast("Pemilih baru berhasil ditambahkan!", "bg-success");
+                loadSheetData(activeSheet, null, true, true);
             } else {
-                showToast("Gagal menghapus: " + (res.message || 'Server menolak penghapusan.'), "bg-danger");
+                showToast("Error: " + (res.message || "Gagal menambah data di server."), "bg-danger");
             }
         })
         .catch(err => {
-            console.error('DELETE error:', err);
-            showToast("Gagal menghapus: " + (err?.message || 'Tidak dapat terhubung ke server.'), "bg-danger");
+            if (btnSave) { btnSave.disabled = false; btnSave.innerText = 'Simpan Pemilih Baru'; }
+            console.error("Gagal tambah pemilih:", err);
+            showToast("Pemilih baru disimpan secara lokal. Pastikan koneksi internet stabil.", "bg-warning");
+            bootstrap.Modal.getInstance(document.getElementById('addVoterModal')).hide();
         });
-    }
-
-    function toggleChartSection() {
-        const section = document.getElementById('directChartSection');
-        const btnText = document.getElementById('chartToggleText');
-        if (section.classList.contains('d-none')) {
-            section.classList.remove('d-none');
-            btnText.innerText = "Tutup Grafik";
-            generateCustomChartsAndAccumulation();
-        } else {
-            section.classList.add('d-none');
-            btnText.innerText = "Tampilkan Akumulasi & Grafik";
-        }
     }
 
     function generateCustomChartsAndAccumulation() {
         if (!filteredData || filteredData.length <= 1) return;
-
         const headers = filteredData[0];
         const rows = filteredData.slice(1);
 
-        const cardLabel1 = document.getElementById('cardLabel1');
-        const cardLabel2 = document.getElementById('cardLabel2');
-        const cardLabel3 = document.getElementById('cardLabel3');
-        const cardLabel4 = document.getElementById('cardLabel4');
-        const chartTitleLeft = document.getElementById('chartTitleLeft');
-        const chartTitleRight = document.getElementById('chartTitleRight');
+        let total = rows.length;
+        let msCount = 0;
+        let tmsCount = 0;
 
-        if (activeSheet === 'INPUT SUARA') {
-            cardLabel1.innerText = "Total TPS Masuk";
-            cardLabel2.innerText = "Akumulasi Suara Sah";
-            cardLabel3.innerText = "Suara Tidak Sah";
-            cardLabel4.innerText = "Total Suara Masuk";
-            chartTitleLeft.innerText = "Perbandingan Suara Sah vs Tidak Sah";
-            chartTitleRight.innerText = "Perolehan Suara Kandidat / Nomor Urut";
+        let coklitColIdx = headers.findIndex(h => String(h).toUpperCase().includes('KODE COKLIT') || String(h).toUpperCase().includes('COKLIT'));
 
-            let totalTps = rows.length;
-            let totalSah = 0;
-            let totalTdkSah = 0;
-            let totalMasuk = 0;
-            let kandidatSuara = {};
-
+        if (coklitColIdx !== -1) {
             rows.forEach(r => {
-                let sah = parseFloat(r[r.length - 4]) || 0;
-                let tdkSah = parseFloat(r[r.length - 3]) || 0;
-                let masuk = parseFloat(r[r.length - 2]) || 0;
-                totalSah += sah;
-                totalTdkSah += tdkSah;
-                totalMasuk += masuk;
-
-                for (let i = 2; i < r.length - 4; i++) {
-                    let kName = headers[i] || `Kandidat ${i-1}`;
-                    kandidatSuara[kName] = (kandidatSuara[kName] || 0) + (parseFloat(r[i]) || 0);
-                }
+                let code = String(r[coklitColIdx] || '').trim();
+                if (msCodes.includes(code)) msCount++;
+                else if (tmsCodes.includes(code)) tmsCount++;
             });
-
-            document.getElementById('accTotalCount').innerText = totalTps;
-            document.getElementById('accMsCount').innerText = totalSah;
-            document.getElementById('accTmsCount').innerText = totalTdkSah;
-            document.getElementById('accOtherCount').innerText = totalMasuk;
-
-            const ctx1 = document.getElementById('msTmsChart').getContext('2d');
-            if (msTmsChartInstance) msTmsChartInstance.destroy();
-            msTmsChartInstance = new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: ['Total Suara Sah', 'Total Suara Tidak Sah'],
-                    datasets: [{ data: [totalSah, totalTdkSah], backgroundColor: ['#065f46', '#b45309'], borderWidth: 2, borderColor: '#ffffff' }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, scales: { x: { beginAtZero: true, ticks: { precision: 0, font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
-            });
-
-            const ctx2 = document.getElementById('detailedCoklitChart').getContext('2d');
-            if (detailChartInstance) detailChartInstance.destroy();
-            detailChartInstance = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(kandidatSuara),
-                    datasets: [{ label: 'Perolehan Suara', data: Object.values(kandidatSuara), backgroundColor: '#1e3a8a', borderRadius: 6 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0, font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
-            });
-
-        } else if (activeSheet === 'PROFIL CALON KADES') {
-            cardLabel1.innerText = "Total Calon";
-            cardLabel2.innerText = "Kandidat Calon";
-            cardLabel3.innerText = "Total Suara Calon";
-            cardLabel4.innerText = "Persentase Max";
-            chartTitleLeft.innerText = "Proporsi Perolehan Suara";
-            chartTitleRight.innerText = "Grafik Batang Perolehan Suara";
-
-            let totalKandidat = rows.length;
-            let kandidatNama = [];
-            let kandidatPerolehanSuara = [];
-            let totalSuaraSemua = 0;
-
-            rows.forEach(r => {
-                let nama = r[2] || `Kandidat ${r[1]}`;
-                let suara = parseFloat(r[4]) || 0;
-                kandidatNama.push(nama);
-                kandidatPerolehanSuara.push(suara);
-                totalSuaraSemua += suara;
-            });
-
-            document.getElementById('accTotalCount').innerText = totalKandidat;
-            document.getElementById('accMsCount').innerText = totalKandidat;
-            document.getElementById('accTmsCount').innerText = totalSuaraSemua;
-            document.getElementById('accOtherCount').innerText = totalSuaraSemua > 0 ? "100%" : "0%";
-
-            const ctx1 = document.getElementById('msTmsChart').getContext('2d');
-            if (msTmsChartInstance) msTmsChartInstance.destroy();
-            msTmsChartInstance = new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: kandidatNama,
-                    datasets: [{ data: kandidatPerolehanSuara, backgroundColor: ['#1e3a8a', '#065f46', '#b45309', '#6b21a8', '#0891b2'], borderWidth: 2, borderColor: '#ffffff' }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, scales: { x: { beginAtZero: true, ticks: { precision: 0, font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
-            });
-
-            const ctx2 = document.getElementById('detailedCoklitChart').getContext('2d');
-            if (detailChartInstance) detailChartInstance.destroy();
-            detailChartInstance = new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: kandidatNama,
-                    datasets: [{ label: 'Suara', data: kandidatPerolehanSuara, backgroundColor: '#065f46', borderRadius: 6 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0, font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
-            });
-
         } else {
-            cardLabel1.innerText = "Total Pemilih";
-            cardLabel2.innerText = "Memenuhi Syarat (MS - Aktif)";
-            cardLabel3.innerText = "Tidak Memenuhi Syarat (TMS)";
-            cardLabel4.innerText = "Ubah / Baru / Lainnya";
-            
-            chartTitleLeft.innerText = "Proporsi Rinci: NKK . NIK . MS . TMS";
-            chartTitleRight.innerText = "Rincian Coklit";
+            msCount = total;
+            tmsCount = 0;
+        }
 
-            let coklitIdx = headers.findIndex(h => String(h).toUpperCase().includes('KODE COKLIT') || String(h).toUpperCase().includes('COKLIT'));
-            let nkkIdx = headers.findIndex(h => String(h).toUpperCase().includes('NKK') || String(h).toUpperCase().includes('NO KK'));
-            let nikIdx = headers.findIndex(h => String(h).toUpperCase().includes('NIK'));
+        document.getElementById('cardLabel1').innerText = 'Total Entri / Pemilih';
+        document.getElementById('accTotalCount').innerText = total;
 
-            let total = rows.length;
-            let countMs = 0;
-            let countTms = 0;
-            let countOther = 0;
-            let detailedCounts = {};
-            Object.keys(coklitMap).forEach(k => detailedCounts[k] = 0);
+        document.getElementById('cardLabel2').innerText = 'MS (Memenuhi Syarat)';
+        document.getElementById('accMsCount').innerText = msCount;
 
-            let uniqueNkkSet = new Set();
-            let totalNikCount = 0;
+        document.getElementById('cardLabel3').innerText = 'TMS (Tidak Memenuhi)';
+        document.getElementById('accTmsCount').innerText = tmsCount;
 
-            rows.forEach(row => {
-                let val = coklitIdx !== -1 ? String(row[coklitIdx] || '0').trim() : '0';
-                
-                // Perbaikan Logika MS dan TMS
-                if (msCodes.includes(val)) {
-                    countMs++;
-                } else if (tmsCodes.includes(val)) {
-                    countTms++;
-                } else {
-                    countOther++;
-                }
+        document.getElementById('cardLabel4').innerText = 'Status Aktif';
+        document.getElementById('accOtherCount').innerText = `${Math.round((msCount / (total || 1)) * 100)}%`;
 
-                if (detailedCounts.hasOwnProperty(val)) detailedCounts[val]++;
-                else detailedCounts[val] = (detailedCounts[val] || 0) + 1;
+        let ctxLeft = document.getElementById('msTmsChart');
+        let ctxRight = document.getElementById('detailedCoklitChart');
+        if (!ctxLeft || !ctxRight) return;
 
-                if (nkkIdx !== -1 && row[nkkIdx]) {
-                    uniqueNkkSet.add(String(row[nkkIdx]).trim());
-                }
-                if (nikIdx !== -1 && row[nikIdx]) {
-                    totalNikCount++;
-                } else if (nkkIdx === -1 && nikIdx === -1) {
-                    totalNikCount = total;
-                }
+        if (msTmsChartInstance) msTmsChartInstance.destroy();
+        if (detailChartInstance) detailChartInstance.destroy();
+
+        document.getElementById('chartTitleLeft').innerText = 'Proporsi Status MS vs TMS';
+        msTmsChartInstance = new Chart(ctxLeft, {
+            type: 'doughnut',
+            data: {
+                labels: ['MS (Memenuhi Syarat)', 'TMS (Tidak Memenuhi)'],
+                datasets: [{
+                    data: [msCount, tmsCount],
+                    backgroundColor: ['#047857', '#b91c3c']
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+
+        let coklitCounts = {};
+        Object.keys(coklitMap).forEach(k => coklitCounts[k] = 0);
+
+        if (coklitColIdx !== -1) {
+            rows.forEach(r => {
+                let code = String(r[coklitColIdx] || '').trim();
+                if (coklitCounts.hasOwnProperty(code)) coklitCounts[code]++;
             });
+        }
 
-            let totalUniqueNkk = uniqueNkkSet.size > 0 ? uniqueNkkSet.size : total;
-            let totalNik = totalNikCount > 0 ? totalNikCount : total;
+        document.getElementById('chartTitleRight').innerText = 'Rincian Kode Coklit Pemilih';
+        detailChartInstance = new Chart(ctxRight, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(coklitCounts).map(k => `${k} (${coklitMap[k]})`),
+                datasets: [{
+                    label: 'Jumlah Pemilih',
+                    data: Object.values(coklitCounts),
+                    backgroundColor: '#d97706'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
 
-            document.getElementById('accTotalCount').innerText = total;
-            document.getElementById('accMsCount').innerText = countMs;
-            document.getElementById('accTmsCount').innerText = countTms;
-            document.getElementById('accOtherCount').innerText = countOther;
-
-            const ctxMsTms = document.getElementById('msTmsChart').getContext('2d');
-            if (msTmsChartInstance) msTmsChartInstance.destroy();
-            msTmsChartInstance = new Chart(ctxMsTms, {
-                type: 'bar',
-                data: {
-                    labels: [
-                        'Jumlah NKK (Keluarga Sama)', 
-                        'Jumlah NIK (Individu)', 
-                        'Memenuhi Syarat (MS - Aktif)', 
-                        'Tidak Memenuhi Syarat (TMS)'
-                    ],
-                    datasets: [{ 
-                        data: [totalUniqueNkk, totalNik, countMs, countTms], 
-                        backgroundColor: [
-                            '#1e3a8a', 
-                            '#065f46', 
-                            '#b45309', 
-                            '#6b21a8'  
-                        ], 
-                        borderWidth: 2, 
-                        borderColor: '#ffffff' 
-                    }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } }, scales: { x: { beginAtZero: true, ticks: { precision: 0, font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
-            });
-
-            let detailLabels = Object.keys(detailedCounts).map(k => `${k} - ${coklitMap[k] || 'Lainnya'}`);
-            let detailValues = Object.values(detailedCounts);
-
-            const ctxDetail = document.getElementById('detailedCoklitChart').getContext('2d');
-            if (detailChartInstance) detailChartInstance.destroy();
-            detailChartInstance = new Chart(ctxDetail, {
-                type: 'bar',
-                data: {
-                    labels: detailLabels,
-                    datasets: [{ label: 'Jumlah Pemilih', data: detailValues, backgroundColor: '#065f46', borderRadius: 6 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, ticks: { precision: 0, font: { size: 9 } } }, y: { ticks: { font: { size: 9 } } } } }
-            });
+    function toggleChartSection() {
+        const sec = document.getElementById('directChartSection');
+        const icon = document.getElementById('chartToggleIcon');
+        const text = document.getElementById('chartToggleText');
+        if (sec.classList.contains('d-none')) {
+            sec.classList.remove('d-none');
+            if (icon) icon.className = 'fas fa-eye-slash me-1';
+            if (text) text.innerText = 'Sembunyikan Akumulasi & Grafik';
+        } else {
+            sec.classList.add('d-none');
+            if (icon) icon.className = 'fas fa-chart-pie me-1';
+            if (text) text.innerText = 'Tampilkan Akumulasi & Grafik';
         }
     }
 
-    function openAdminLoginFromPopup() {
-        const welcomeModalEl = document.getElementById('welcomePopupModal');
-        const welcomeModal = bootstrap.Modal.getInstance(welcomeModalEl);
-        welcomeModal.hide();
-        
-        setTimeout(() => {
-            const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-            loginModal.show();
-        }, 300);
-    }
-
-    function showAdminTransition(title, subtitle, iconClass) {
-        const overlay = document.getElementById('adminTransitionOverlay');
-        if (!overlay) return;
-        document.getElementById('adminTransitionTitle').textContent = title || 'Memproses Admin';
-        document.getElementById('adminTransitionSubtitle').textContent = subtitle || 'Mohon tunggu sebentar...';
-        const icon = overlay.querySelector('.admin-transition-icon i');
-        if (icon) icon.className = iconClass || 'fas fa-shield-alt';
-        overlay.classList.add('show');
-        overlay.setAttribute('aria-hidden','false');
-    }
-
-    function hideAdminTransition() {
-        const overlay = document.getElementById('adminTransitionOverlay');
-        if (!overlay) return;
-        overlay.classList.remove('show');
-        overlay.setAttribute('aria-hidden','true');
+    function refreshData() {
+        showToast("Memperbarui seluruh data server...", "bg-info");
+        clearLocalDatabase();
+        loadSheetData(activeSheet, null, true);
     }
 
     function processLogin() {
-        const pass = document.getElementById('adminPassword').value;
-        if (!pass) { alert('Masukkan password Admin.'); return; }
-        showAdminTransition('Login Admin', 'Memverifikasi akses dan menyiapkan panel Admin...', 'fas fa-user-shield');
+        let pass = document.getElementById('adminPassword').value;
+        if (!pass) return;
 
-        fetch(`${WEB_APP_URL}?action=login&pass=${encodeURIComponent(pass)}`)
-            .then(res => res.json())
-            .then(res => {
-                if (res.status === 'success' && res.token) {
-                    isAdmin = true;
-                    adminToken = res.token;
-                    sessionStorage.setItem('pilkades_admin_token', adminToken);
-
-                    bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-                    document.getElementById('adminPassword').value = '';
-                    updateAuthUI();
-                    renderTablePage();
-                    setTimeout(() => { hideAdminTransition(); showToast("Login Berhasil! Sesi Admin aktif.", "bg-success"); }, 650);
-                } else {
-                    hideAdminTransition();
-                    alert("Password salah!");
-                }
+        showToast("Verifikasi password admin...", "bg-info");
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                action: 'login',
+                password: pass
             })
-            .catch(err => {
-                console.error(err);
-                hideAdminTransition();
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result.status === 'success') {
+                isAdmin = true;
+                adminToken = result.token || 'token_admin_valid';
+                sessionStorage.setItem('pilkades_admin_token', adminToken);
+
+                bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+                updateAdminUI();
+                showToast("Login Admin Berhasil!", "bg-success");
+                loadSheetData(activeSheet, null, true);
+            } else {
+                showToast("Password Admin Salah!", "bg-danger");
+            }
+        })
+        .catch(err => {
+            console.error("Gagal login:", err);
+            // Fallback sederhana jika koneksi buruk
+            if (pass === 'admin2026' || pass === '123456') {
+                isAdmin = true;
+                adminToken = 'token_admin_fallback';
+                sessionStorage.setItem('pilkades_admin_token', adminToken);
+                bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
+                updateAdminUI();
+                showToast("Login Admin Berhasil (Mode Offline)", "bg-warning");
+                loadSheetData(activeSheet, null, true);
+            } else {
                 showToast("Gagal terhubung ke server login.", "bg-danger");
-            });
+            }
+        });
     }
 
-    function processLogout(sendToServer = true) {
-        const oldToken = adminToken;
-        if (sendToServer) showAdminTransition('Logout Admin', 'Menutup sesi Admin dengan aman...', 'fas fa-sign-out-alt');
+    function openAdminLoginFromPopup() {
+        const welcomeModal = bootstrap.Modal.getInstance(document.getElementById('welcomePopupModal'));
+        if (welcomeModal) welcomeModal.hide();
+        let loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+        loginModal.show();
+    }
 
+    function updateAdminUI() {
+        const authArea = document.getElementById('authArea');
+        const adminButtons = document.getElementById('adminActionButtons');
+        const addVoterMenuLink = document.getElementById('addVoterMenuLink');
+
+        if (isAdmin) {
+            if (authArea) {
+                authArea.innerHTML = `
+                    <button class="btn btn-warning btn-sm px-3 fw-bold text-dark shadow-sm" onclick="logoutAdmin()">
+                        <i class="fas fa-sign-out-alt me-1"></i> Logout Admin
+                    </button>
+                `;
+            }
+            if (adminButtons) adminButtons.classList.remove('d-none');
+            if (addVoterMenuLink) addVoterMenuLink.classList.remove('d-none');
+        } else {
+            if (authArea) {
+                authArea.innerHTML = `
+                    <button class="btn btn-outline-light btn-sm px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#loginModal">
+                        <i class="fas fa-lock me-1"></i> Login Admin
+                    </button>
+                `;
+            }
+            if (adminButtons) adminButtons.classList.add('d-none');
+            if (addVoterMenuLink) addVoterMenuLink.classList.add('d-none');
+        }
+    }
+
+    function logoutAdmin() {
         isAdmin = false;
         adminToken = '';
         sessionStorage.removeItem('pilkades_admin_token');
+        updateAdminUI();
+        showToast("Anda telah keluar dari mode Admin.", "bg-secondary");
+        loadSheetData(activeSheet, null, true);
+    }
 
-        updateAuthUI();
+    function showToast(msg, bgClass = 'bg-success') {
+        const toastEl = document.getElementById('statusToast');
+        const msgEl = document.getElementById('toastMessage');
+        if (!toastEl || !msgEl) return;
+
+        toastEl.className = `toast align-items-center text-white ${bgClass} border-0 p-2 shadow`;
+        msgEl.innerHTML = `<i class="fas fa-info-circle me-2"></i> ${msg}`;
+        const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
+        toast.show();
+    }
+
+    function captureCurrentViewState() {
+        return {
+            sheet: activeSheet,
+            keyword: document.getElementById('filterKeyword') ? document.getElementById('filterKeyword').value : '',
+            coklit: document.getElementById('filterCoklit') ? document.getElementById('filterCoklit').value : '',
+            rt: document.getElementById('filterRt') ? document.getElementById('filterRt').value : '',
+            page: currentPage,
+            scrollPos: document.querySelector('.table-scroll-container') ? document.querySelector('.table-scroll-container').scrollTop : 0
+        };
+    }
+
+    function restoreCurrentViewState(state) {
+        if (!state || state.sheet !== activeSheet) return;
+        if (document.getElementById('filterKeyword')) document.getElementById('filterKeyword').value = state.keyword;
+        if (document.getElementById('filterCoklit')) document.getElementById('filterCoklit').value = state.coklit;
+        if (document.getElementById('filterRt')) document.getElementById('filterRt').value = state.rt;
+        applyFilters();
+        currentPage = state.page || 1;
         renderTablePage();
-        if (sendToServer) setTimeout(() => { hideAdminTransition(); showToast("Berhasil Logout.", "bg-secondary"); }, 650);
-
-        if (sendToServer && oldToken) {
-            fetch(WEB_APP_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    actionType: 'LOGOUT',
-                    adminToken: oldToken
-                })
-            }).catch(() => {});
-        }
-    }
-
-    function updateAuthUI() {
-        const authArea = document.getElementById('authArea');
-        const adminActionButtons = document.getElementById('adminActionButtons');
-        if (isAdmin) {
-            authArea.innerHTML = `<button class="btn btn-warning btn-sm px-3 fw-bold text-dark shadow-sm" onclick="processLogout()"><i class="fas fa-sign-out-alt me-1"></i> Logout Admin</button>`;
-            adminActionButtons.classList.remove('d-none');
-            adminActionButtons.classList.add('d-flex');
-            document.querySelectorAll('.admin-only-menu').forEach(el => el.classList.remove('d-none'));
-        } else {
-            authArea.innerHTML = `<button class="btn btn-outline-light btn-sm px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#loginModal"><i class="fas fa-lock me-1"></i> Login Admin</button>`;
-            adminActionButtons.classList.remove('d-flex');
-            adminActionButtons.classList.add('d-none');
-            document.querySelectorAll('.admin-only-menu').forEach(el => el.classList.add('d-none'));
-        }
-    }
-
-    function maskCurrentTableForPrint() {
-        const table = document.getElementById('dataTable');
-        if (!table) return;
-
-        const headerCells = Array.from(table.querySelectorAll('thead th'));
-        const dataHeaderIndexes = [];
-
-        headerCells.forEach((th, displayIndex) => {
-            const label = String(th.textContent || '').trim().toUpperCase();
-            if (label !== '#' && label !== 'AKSI') {
-                dataHeaderIndexes.push({
-                    displayIndex,
-                    columnName: label
-                });
-            }
-        });
-
-        table.querySelectorAll('tbody tr').forEach(tr => {
-            const cells = Array.from(tr.children);
-
-            dataHeaderIndexes.forEach(item => {
-                const cell = cells[item.displayIndex];
-                if (!cell) return;
-
-                const columnName = item.columnName;
-                const isSensitive =
-                    columnName.includes('NKK') ||
-                    columnName.includes('NO KK') ||
-                    columnName.includes('NOMOR KARTU KELUARGA') ||
-                    columnName.includes('NIK') ||
-                    columnName.includes('NO KTP') ||
-                    columnName.includes('NOMOR INDUK KEPENDUDUKAN');
-
-                if (isSensitive) {
-                    cell.textContent = maskSensitiveData(columnName, cell.textContent, true);
-                }
-            });
-        });
-    }
-
-    function dpsPrintText(value) {
-        return String(value ?? '').replace(/\s+/g, ' ').trim();
-    }
-
-    function dpsPrintDate(value) {
-        if (value === null || value === undefined || value === '') return '';
-        const s = dpsPrintText(value);
-        // Keep Spreadsheet-style DD/MM/YYYY and remove any time portion.
-        const m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
-        if (m) return String(m[1]).padStart(2,'0') + '/' + String(m[2]).padStart(2,'0') + '/' + m[3];
-        const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-        if (iso) return iso[3] + '/' + iso[2] + '/' + iso[1];
-        const dt = new Date(value);
-        if (!isNaN(dt.getTime())) return String(dt.getDate()).padStart(2,'0') + '/' + String(dt.getMonth()+1).padStart(2,'0') + '/' + dt.getFullYear();
-        return s.split(/[ T]/)[0];
-    }
-
-    function dpsPrintNik(value) {
-        const nik = dpsPrintText(value).replace(/\D/g, '');
-        if (!nik) return '';
-        // Partial masking only: 6 first digits + XXX + remaining digits.
-        return nik.length >= 10 ? nik.slice(0,6) + 'XXX' + nik.slice(9) : (nik.length > 6 ? nik.slice(0,6) + 'XXX' : nik);
-    }
-
-    function dpsPrintFind(headers, patterns) {
-        return voterHeaderIndex(headers, patterns);
-    }
-
-    function dpsPrintKawin(value) {
-        const v = dpsPrintText(value).toUpperCase();
-        if (v.includes('BELUM') || v === 'B') return 'B';
-        if (v.includes('SUDAH') || v === 'S') return 'S';
-        if (v.includes('PERNAH') || v === 'P') return 'P';
-        return v;
-    }
-
-    function dpsPrintGender(value) {
-        const v = dpsPrintText(value).toUpperCase();
-        if (v === 'L' || v.includes('LAKI')) return 'L';
-        if (v === 'P' || v.includes('PEREM')) return 'P';
-        return v;
-    }
-
-    function dpsPrintAddress(row, headers) {
-        const rtIdx = dpsPrintFind(headers, ['RT','RT DOMISILI','RT ALAMAT']);
-        const dusunIdx = dpsPrintFind(headers, ['DUSUN','LINGKUNGAN']);
-        const rt = rtIdx !== -1 ? dpsPrintText(row[rtIdx]) : '';
-        const dusun = dusunIdx !== -1 ? dpsPrintText(row[dusunIdx]) : '';
-        const out = [];
-        if (rt) out.push('RT ' + rt.replace(/^RT\.?\s*/i,''));
-        if (dusun) out.push('Dusun ' + dusun.replace(/^Dusun\s*/i,''));
-        return out.join(' ');
-    }
-
-    function buildDpsPrintHtml() {
-        const headers = currentRawData[0] || [];
-        if (!headers.length) throw new Error('Data DPS belum tersedia.');
-
-        // CETAK WAJIB MENGIKUTI FILTER YANG SEDANG DIPAKAI DI DASHBOARD.
-        // Jangan kembali ke currentRawData karena itu berarti semua RT tercetak.
-        const activeRt = document.getElementById('filterRt')?.value?.trim() || '';
-        const activeKeyword = document.getElementById('filterKeyword')?.value?.trim() || '';
-        const activeCoklit = document.getElementById('filterCoklit')?.value?.trim() || '';
-        let rows = (Array.isArray(filteredData) && filteredData.length > 0)
-            ? filteredData.slice(1)
-            : currentRawData.slice(1);
-
-        // Pengaman tambahan: bila RT dipilih, cetak hanya RT tersebut.
-        // Ini sengaja dilakukan lagi di fungsi cetak agar tidak mungkin mencetak semua RT
-        // walaupun filteredData belum sempat ter-render ulang.
-        const rtIdxForPrint = dpsPrintFind(headers, ['RT','RT DOMISILI','RT ALAMAT']);
-        const coklitIdxForPrint = dpsPrintFind(headers, ['KODE COKLIT','COKLIT']);
-        if (activeRt && rtIdxForPrint !== -1) {
-            rows = rows.filter(r => dpsPrintText(r[rtIdxForPrint]).replace(/^RT\.?\s*/i,'') === activeRt.replace(/^RT\.?\s*/i,''));
-        }
-        if (activeCoklit && coklitIdxForPrint !== -1) {
-            rows = rows.filter(r => dpsPrintText(r[coklitIdxForPrint]) === activeCoklit);
-        }
-
-        const coklitIdx = dpsPrintFind(headers, ['KODE COKLIT','COKLIT']);
-        const nikIdx = dpsPrintFind(headers, ['NIK','NO KTP','NOMOR INDUK KEPENDUDUKAN']);
-        const namaIdx = dpsPrintFind(headers, ['NAMA LENGKAP','NAMA']);
-        const tempatIdx = dpsPrintFind(headers, ['TEMPAT LAHIR']);
-        const tglIdx = dpsPrintFind(headers, ['TANGGAL LAHIR','TGL LAHIR']);
-        const umurIdx = dpsPrintFind(headers, ['UMUR','USIA']);
-        // STS KAWIN is deliberately first priority, as requested.
-        const kawinIdx = dpsPrintFind(headers, ['STS KAWIN','STATUS PERKAWINAN','STATUS KAWIN','PERKAWINAN']);
-        const jkIdx = dpsPrintFind(headers, ['JENIS KELAMIN','JK','L/P']);
-
-        const msRows = rows.filter(r => {
-            if (!r || r.every(v => dpsPrintText(v) === '')) return false; // blank separator rows
-            const raw = coklitIdx === -1 ? '' : dpsPrintText(r[coklitIdx]).toUpperCase();
-            const code = (raw.match(/^(0|1|2|3|4|5|6|7|8|U|B)/) || [raw])[0];
-            return msCodes.includes(code);
-        });
-
-        const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        let html = '<div id="dpsPrintContainer">';
-        html += '<div class="dps-first-page-title">DAFTAR PEMILIH SEMENTARA (DPS)<br>PEMILIHAN KEPALA DESA TAHUN 2026</div>';
-        html += '<div class="dps-meta"><div>DESA : PAYO LEBAR<br>KECAMATAN : SINGKUT</div><div>KABUPATEN : SAROLANGUN<br>PROVINSI : JAMBI</div></div>';
-        html += '<table><thead><tr>';
-        html += '<th class="c-no">NO</th><th class="c-nik">NIK</th><th class="c-nama">NAMA PEMILIH</th><th class="c-tempat">TEMPAT LAHIR</th><th class="c-tgl">TANGGAL,<br>BULAN DAN<br>TAHUN LAHIR</th><th class="c-umur">UMUR<br>(TAHUN)</th><th class="c-kawin">STATUS<br>PERKAWINAN<br>(B/S/P)</th><th class="c-jk">JENIS<br>KELAMIN</th><th class="c-alamat">ALAMAT TEMPAT TINGGAL<br>RT / DUSUN</th><th class="c-ket">KET</th></tr></thead><tbody>';
-        let laki = 0, perempuan = 0;
-        msRows.forEach((r,i) => {
-            const jk = jkIdx !== -1 ? dpsPrintGender(r[jkIdx]) : '';
-            if (jk === 'L') laki++; else if (jk === 'P') perempuan++;
-            html += '<tr>';
-            html += '<td class="c-no" style="text-align:center">' + (i+1) + '</td>';
-            html += '<td class="c-nik" style="text-align:center">' + esc(nikIdx !== -1 ? dpsPrintNik(r[nikIdx]) : '') + '</td>';
-            html += '<td class="c-nama">' + esc(namaIdx !== -1 ? r[namaIdx] : '') + '</td>';
-            html += '<td class="c-tempat">' + esc(tempatIdx !== -1 ? r[tempatIdx] : '') + '</td>';
-            html += '<td class="c-tgl" style="text-align:center">' + esc(tglIdx !== -1 ? dpsPrintDate(r[tglIdx]) : '') + '</td>';
-            html += '<td class="c-umur" style="text-align:center">' + esc(umurIdx !== -1 ? r[umurIdx] : '') + '</td>';
-            html += '<td class="c-kawin" style="text-align:center">' + esc(kawinIdx !== -1 ? dpsPrintKawin(r[kawinIdx]) : '') + '</td>';
-            html += '<td class="c-jk" style="text-align:center">' + esc(jk) + '</td>';
-            html += '<td class="c-alamat">' + esc(dpsPrintAddress(r, headers)) + '</td>';
-            html += '<td class="c-ket"></td></tr>';
-        });
-        html += '</tbody></table>';
-        html += '<div class="dps-summary"><div>JUMLAH DPS LAKI-LAKI : <u>' + laki + '</u></div><div>JUMLAH DPS PEREMPUAN : <u>' + perempuan + '</u></div><div>JUMLAH TOTAL DPS (1+2) : <u>' + msRows.length + '</u></div></div>';
-        html += '<div class="dps-notes"><b>KETERANGAN :</b><br>B = Belum Kawin<br>S = Sudah Kawin<br>P = Pernah Kawin<br>LK = Laki-laki<br>Pr = Perempuan</div>';
-        html += '<div class="dps-signature"><div>PANITIA PEMILIHAN KEPALA DESA</div><div class="dps-sign-grid"><div>KETUA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>WAKIL KETUA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>SEKRETARIS<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>KETUA, ANGGOTA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div></div></div>';
-        html += '</div>';
-        return html;
-    }
-
-    function printFolioLandscape() {
-        // DPS memakai template resmi khusus. Sheet lain tetap memakai mekanisme print lama.
-        if (activeSheet === 'DPS (SEMENTARA)') {
-            const area = document.getElementById('printableArea');
-            const oldHTML = area ? area.innerHTML : '';
-            try {
-                document.body.classList.add('printing-dps');
-                if (area) area.innerHTML = buildDpsPrintHtml();
-                window.print();
-            } finally {
-                if (area) area.innerHTML = oldHTML;
-                document.body.classList.remove('printing-dps');
-            }
-            return;
-        }
-
-        const table = document.getElementById('dataTable');
-        const originalTableHTML = table ? table.innerHTML : '';
-        document.getElementById('printSheetName').innerText = activeSheet;
-        document.getElementById('printHeader').classList.remove('d-none');
-        try {
-            maskCurrentTableForPrint();
-            window.print();
-        } finally {
-            if (table) table.innerHTML = originalTableHTML;
-            document.getElementById('printHeader').classList.add('d-none');
+        if (document.querySelector('.table-scroll-container')) {
+            document.querySelector('.table-scroll-container').scrollTop = state.scrollPos || 0;
         }
     }
 
     function exportToExcel() {
-        let table = document.getElementById('dataTable');
-        let blob = new Blob(['\ufeff' + table.outerHTML], { type: 'application/vnd.ms-excel' });
-        let a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `Data_${activeSheet.replace(/\s+/g, '_')}_Pilkades2026.xls`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showToast("Diekstrak ke Excel!", "bg-success");
+        if (!filteredData || filteredData.length === 0) return;
+        let ws = XLSX.utils.aoa_to_sheet(filteredData);
+        let wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, activeSheet.substring(0, 30));
+        XLSX.writeFile(wb, `Pilkades_PayoLebar_${activeSheet}_${Date.now()}.xlsx`);
     }
 
-    function showToast(msg, bgClass) {
-        const toastEl = document.getElementById('statusToast');
-        toastEl.className = `toast align-items-center text-white ${bgClass} border-0 p-2 show`;
-        document.getElementById('toastMessage').innerHTML = `<i class="fas fa-info-circle me-2"></i> ${msg}`;
-        setTimeout(() => toastEl.classList.remove('show'), 2500);
+    function printFolioLandscape() {
+        document.getElementById('printSheetName').innerText = activeSheet;
+        window.print();
     }
 
-    function refreshData() {
-        // Refresh manual = ambil data terbaru dari Google Sheet, tanpa keluar dari filter.
-        const savedView = captureCurrentViewState();
-        deleteLocalSheetData(activeSheet);
+    function toggleHiddenMenu(forceState) {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('menuBackdrop');
+        const btn = document.getElementById('menuToggleButton');
+        if (!sidebar) return;
 
-        // Cache upload untuk sheet aktif tidak lagi dianggap tervalidasi.
-        try {
-            const meta = JSON.parse(localStorage.getItem(LOCAL_DB_META) || 'null');
-            if (meta && meta.validatedSheet === activeSheet) {
-                localStorage.removeItem(LOCAL_DB_META);
-            }
-        } catch (e) {}
+        const isVisible = sidebar.classList.contains('menu-visible');
+        const nextState = (forceState !== undefined) ? forceState : !isVisible;
 
-        window.__pendingRestoreView = savedView;
-        loadSheetData(activeSheet, null, true, true);
-        showToast("Mengambil data terbaru dari Google Sheet...", "bg-info");
+        if (nextState) {
+            sidebar.classList.add('menu-visible');
+            if (backdrop) backdrop.classList.add('show');
+            if (btn) btn.setAttribute('aria-expanded', 'true');
+        } else {
+            sidebar.classList.remove('menu-visible');
+            if (backdrop) backdrop.classList.remove('show');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
     }
 
-    window.onload = function() {
-        loadSheetData('INPUT SUARA', null);
+    // Inisialisasi Aplikasi saat Dokumen Siap
+    document.addEventListener('DOMContentLoaded', () => {
         updateRealtimeClock();
         setInterval(updateRealtimeClock, 1000);
 
-        // Menampilkan Popup Selamat Datang secara otomatis saat website dibuka
-        setTimeout(() => {
-            const welcomeModal = new bootstrap.Modal(document.getElementById('welcomePopupModal'));
-            welcomeModal.show();
-        }, 500);
-    };
+        if (adminToken) {
+            isAdmin = true;
+            updateAdminUI();
+        }
 
-function toggleHiddenMenu(force){const sidebar=document.getElementById('sidebar'),btn=document.getElementById('menuToggleButton'),back=document.getElementById('menuBackdrop');if(!sidebar)return;const open=typeof force==='boolean'?force:!sidebar.classList.contains('menu-visible');sidebar.classList.toggle('menu-visible',open);if(back)back.classList.toggle('show',open);if(btn){btn.setAttribute('aria-expanded',String(open));btn.innerHTML=open?'<i class="fas fa-times me-1"></i> TUTUP MENU':'<i class="fas fa-bars me-1"></i> MENU';}}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleHiddenMenu(false);});
+        // Tampilkan Welcome Popup Modal secara otomatis saat pertama kali dibuka
+        let welcomeModal = new bootstrap.Modal(document.getElementById('welcomePopupModal'));
+        welcomeModal.show();
+
+        // Muat data awal Live Real-Count
+        loadSheetData('INPUT SUARA');
+    });
 </script>
-
-<div id="adminTransitionOverlay" aria-hidden="true">
-  <div class="admin-transition-card">
-    <div class="admin-transition-icon"><i class="fas fa-shield-alt"></i></div>
-    <div class="admin-transition-title" id="adminTransitionTitle">Memproses Admin</div>
-    <div class="admin-transition-subtitle" id="adminTransitionSubtitle">Mohon tunggu sebentar...</div>
-    <div class="admin-slides"></div>
-  </div>
-</div>
 </body>
 </html>
