@@ -406,7 +406,6 @@
             .no-print { display: none !important; }
             .table-scroll-container { max-height: none !important; overflow: visible !important; }
 
-            /* Cetak lebih rapat agar hemat kertas tetapi tetap terbaca */
             #printableArea .sheet-table {
                 font-size: 8px !important;
                 line-height: 1.05 !important;
@@ -682,7 +681,7 @@
     </div>
 </div>
 
-<!-- Modal Sambutan / Welcome Popup dengan Pilihan Masuk Sebagai Publik / Admin -->
+<!-- Modal Sambutan -->
 <div class="modal fade" id="welcomePopupModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4 text-center p-3" style="background: linear-gradient(145deg, #ffffff 0%, #fdf2f4 100%); border-top: 5px solid var(--kpu-primary) !important;">
@@ -884,7 +883,7 @@
 <!-- Bootstrap JS & Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
     let activeSheet = 'INPUT SUARA';
     let currentRawData = [];
@@ -894,11 +893,10 @@
     let isAdmin = false;
     let adminToken = sessionStorage.getItem('pilkades_admin_token') || ''; 
     let currentPage = 1;
-    // Pilihan jumlah baris: 50, 100, 500, 1000, 5000.
-    // Default awal dibuat 50 agar tampilan publik ringan.
     let rowsPerPage = 50; 
     let editingTargetRowIndex = null;
     let editingTargetRowData = null;
+    let dpsSheetDataCache = null; 
     
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzqLHfzqRu5g5znrLsCdxDU3FpwKywaO9ds2UuoRhsm3zChuKyRy-7-XybQ8kYdzELfvg/exec';
 
@@ -916,10 +914,10 @@
         "B": "Baru (MS)"
     };
 
-    const tmsCodes = ["1", "2", "3", "4", "5", "8"]; // Kode untuk TMS (Tidak Memenuhi Syarat)
-    const msCodes = ["0", "6", "7", "U", "B"]; // Kode untuk MS (Memenuhi Syarat)
+    const tmsCodes = ["1", "2", "3", "4", "5", "8"];
+    const msCodes = ["0", "6", "7", "U", "B"];
     const committeeSheets = ['PANITIA PEMUNGUTAN SUARA (PPS)', 'PENGAWAS (BPD)', 'KPPS TPS 01', 'KPPS TPS 02'];
-    const voterSheets = ['DPT AWAL (PMD)', 'DPS (SEMENTARA)', 'DPTAM (TAMBAHAN)', 'DPT (TETAP)', 'TAMBAH PEMILIH BARU'];
+    const voterSheets = ['DPT AWAL (PMD)', 'DPS (SEMENTARA)', 'DPS', 'DPTAM (TAMBAHAN)', 'DPT (TETAP)', 'TAMBAH PEMILIH BARU'];
     const noFilterSheets = ['INPUT SUARA', 'PROFIL CALON KADES', 'TAHAPAN PILKADES', 'PENGADUAN DAN LAYANAN'];
 
     function toggleSubMenu(submenuId, headerEl) {
@@ -973,9 +971,6 @@
         return sVal;
     }
 
-    // Sensor NKK/NIK hanya untuk tampilan publik.
-    // Data mentah (currentRawData) TIDAK pernah diubah sehingga aman untuk
-    // proses edit/simpan kembali ke Google Sheet oleh Admin.
     function maskSensitiveData(colName, val, forceMask = false) {
         if (val === null || val === undefined || val === "") return "";
         if (isAdmin && !forceMask) return val;
@@ -992,8 +987,6 @@
                       cName.includes('NOMOR INDUK KEPENDUDUKAN');
 
         if (isNkk || isNik) {
-            // Format: 6 digit awal + 6 karakter sensor + 4 digit akhir.
-            // Untuk nomor yang lebih pendek, seluruh bagian tengah tetap disensor.
             if (sVal.length > 10) {
                 return sVal.substring(0, 6) + 'XXXXXX' + sVal.substring(sVal.length - 4);
             }
@@ -1004,9 +997,6 @@
             }
         }
 
-        // Sensor tambahan KHUSUS MODE PUBLIK:
-        // Tempat lahir dan tanggal lahir tidak ditampilkan lengkap kepada publik.
-        // Data asli tetap berada di currentRawData dan tidak pernah diubah.
         const isTempatLahir =
             cName.includes('TEMPAT LAHIR') ||
             cName.includes('TEMPAT KELAHIRAN') ||
@@ -1025,8 +1015,6 @@
         }
 
         if (isTanggalLahir) {
-            // Tanggal lahir publik disamarkan penuh.
-            // Tetap menggunakan bentuk dd/mm/yyyy agar struktur tabel tidak berubah.
             return 'XX/XX/XXXX';
         }
 
@@ -1069,7 +1057,6 @@
                 </tr>
             </thead>
             <tbody>
-                <!-- Gambar 1 -->
                 <tr class="table-secondary fw-bold"><td colspan="4" class="text-start text-uppercase ps-3">-- TAHAPAN BAGIAN 1 (PERSIAPAN S.D. PENETAPAN CALON KEPALA DESA) --</td></tr>
                 <tr><td class="row-index">1</td><td class="align-left fw-bold">PERSIAPAN</td><td>-</td><td>-</td></tr>
                 <tr><td class="row-index">.</td><td class="align-left ps-4">Sosialisasi Tingkat Kabupaten</td><td>1 hari</td><td>21 Mei 2026</td></tr>
@@ -1111,7 +1098,6 @@
                 <tr><td class="row-index">.</td><td class="align-left ps-4">b. Pengumuman Calon Kepala Desa berdasarkan No.Urut</td><td>1 hari</td><td>18 Sept 2026</td></tr>
                 <tr><td class="row-index">.</td><td class="align-left ps-4">c. Penyampaian Data (Photo dan CD) Calon Kepala Desa ke Dinas PMD Kab.Sarolangun</td><td>3 hari</td><td>19-21 Sept 2026</td></tr>
 
-                <!-- Gambar 2 -->
                 <tr class="table-secondary fw-bold"><td colspan="4" class="text-start text-uppercase ps-3">-- TAHAPAN BAGIAN 2 (PENCETAKAN SURAT SUARA S.D. PENETAPAN KEPALA DESA TERPILIH) --</td></tr>
                 <tr><td class="row-index">9</td><td class="align-left fw-bold">PENCETAKAN SURAT SUARA</td><td>-</td><td>-</td></tr>
                 <tr><td class="row-index">.</td><td class="align-left ps-4">- Persiapan Pencetakan Surat Suara</td><td>29 hari</td><td>22 Sept - 20 Okt 2026</td></tr>
@@ -1221,24 +1207,9 @@
         }, 1500);
     }
 
-
-    // ========================= DATABASE LOKAL / CACHE CEPAT =========================
-    // Excel dipakai sebagai sumber import awal. Google Sheet tetap menjadi
-    // penyimpanan permanen untuk EDIT / TAMBAH / HAPUS melalui Apps Script.
     const LOCAL_DB_PREFIX = 'pilkades_db_v2_';
     const LOCAL_DB_META = 'pilkades_db_meta_v2';
     const LOCAL_DB_VERSION_PREFIX = 'pilkades_db_version_v1_';
-
-    function normalizeUploadedValue(value) {
-        if (value === null || value === undefined) return "";
-        if (value instanceof Date) {
-            const y = value.getFullYear();
-            const m = String(value.getMonth() + 1).padStart(2, '0');
-            const d = String(value.getDate()).padStart(2, '0');
-            return `${y}-${m}-${d}T00:00:00`;
-        }
-        return value;
-    }
 
     function saveLocalSheetData(sheetName, data, version) {
         try {
@@ -1278,6 +1249,10 @@
         filteredData = currentRawData;
         currentPage = 1;
 
+        if (sheetName === 'DPS (SEMENTARA)' || sheetName === 'DPS') {
+            dpsSheetDataCache = currentRawData;
+        }
+
         saveLocalSheetData(sheetName, currentRawData, serverVersion);
         renderTablePage();
         populateRtDropdown();
@@ -1311,17 +1286,6 @@
         if (!data || rowIndex <= 0 || rowIndex >= data.length) return false;
         data.splice(rowIndex, 1);
         return saveLocalSheetData(sheetName, data);
-    }
-
-    function clearLocalDatabase() {
-        const metaRaw = localStorage.getItem(LOCAL_DB_META);
-        if (metaRaw) {
-            try {
-                const meta = JSON.parse(metaRaw);
-                (meta.sheets || []).forEach(deleteLocalSheetData);
-            } catch (e) {}
-        }
-        localStorage.removeItem(LOCAL_DB_META);
     }
 
     function loadSheetData(sheetName, element, forceRefresh = false, preserveView = false) {
@@ -1371,9 +1335,6 @@
         const table = document.getElementById('dataTable');
         const localData = getLocalSheetData(sheetName);
 
-        // Cache-first: tampilkan data yang sudah ada SEKETIKA.
-        // Setelah itu cek versi server di background agar perubahan Google Sheet
-        // tetap terbaca otomatis tanpa mengunduh ribuan baris setiap kali membuka menu.
         if (!forceRefresh && localData) {
             renderLoadedSheetData(sheetName, localData, isCommittee, 'cache lokal');
             refreshSheetIfChanged(sheetName, isCommittee, localData);
@@ -1394,8 +1355,6 @@
                 return response.json();
             })
             .catch(firstError => {
-                // Kompatibilitas dengan deployment Apps Script lama:
-                // endpoint tanpa action juga mengembalikan data sheet.
                 const fallbackUrl = `${WEB_APP_URL}?sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
                 return fetch(fallbackUrl, { cache: 'no-store' })
                     .then(response => {
@@ -1436,7 +1395,6 @@
             const localVersion = getLocalSheetVersion(sheetName);
             if (localVersion && localVersion === String(result.version)) return;
 
-            // Versi berbeda (atau cache lama belum punya versi): ambil data sekali.
             if (activeSheet === sheetName) {
                 const savedView = captureCurrentViewState();
                 fetchSheetFromServer(sheetName, isCommittee, true);
@@ -1628,9 +1586,6 @@
         const coklitSelect = document.getElementById('rowEditCoklitType');
         const modalTitle = document.querySelector('#adminRowEditModal .modal-title');
 
-        // Hanya menu DATA PEMILIH yang memakai istilah/aksi Coklit.
-        // Menu Utama, Panitia & Pengawas, Input Suara, dan menu non-pemilih
-        // menggunakan mode edit kolom biasa.
         if (coklitSection) coklitSection.classList.toggle('d-none', !isVoterSheet);
         if (modalTitle) {
             modalTitle.innerHTML = isVoterSheet
@@ -1643,7 +1598,6 @@
             let currentCoklit = coklitColIdx !== -1 ? String(rowData[coklitColIdx] || '0').trim() : '0';
             coklitSelect.value = coklitMap.hasOwnProperty(currentCoklit) ? currentCoklit : '0';
         } else {
-            // Untuk semua sheet non-Data Pemilih, selalu gunakan Ubah/Edit.
             coklitSelect.value = 'U';
         }
 
@@ -1734,9 +1688,6 @@
         if (!isAdmin) return;
         const isVoterSheet = voterSheets.includes(activeSheet);
         const coklitType = document.getElementById('rowEditCoklitType').value;
-        // Aksi 6 memakai penulisan baris lengkap (U) agar Kode Coklit DAN
-        // kolom RT/alamat tujuan benar-benar tersimpan ke Google Sheet.
-        // Label/menu tetap 6 - Pindah Dalam Desa; yang berubah hanya mekanisme simpan.
         const actionType = (isVoterSheet && (coklitType === '6' || coklitType === '8')) ? 'U' : (isVoterSheet ? coklitType : 'U');
         let payload = { sheet: activeSheet, actionType: actionType, rowIndex: editingTargetRowIndex + 1 };
 
@@ -1746,8 +1697,6 @@
                 updatedValues[parseInt(input.getAttribute('data-col-index'))] = input.value;
             });
 
-            // Khusus pilih Coklit 6: pertahankan semua data lama, ubah kode Coklit
-            // menjadi 6 dan tulis RT tujuan ke kolom RT yang benar berdasarkan header.
             if (coklitType === '6' && isVoterSheet) {
                 const targetRt = String(document.getElementById('targetRowRtSelect')?.value || '').trim();
                 const headers = currentRawData[0] || [];
@@ -1765,10 +1714,6 @@
                 payload.coklitAction = '6';
             }
 
-            // Khusus Coklit 8 (Lainnya/TMS): pertahankan seluruh data lama
-            // dan hanya mengubah kolom Kode Coklit menjadi 8.
-            // Disimpan melalui mekanisme edit baris lengkap agar tidak
-            // bergantung pada action handler lama untuk kode 8.
             if (coklitType === '8' && isVoterSheet) {
                 const headers = currentRawData[0] || [];
                 const coklitIdx = headers.findIndex(h => {
@@ -1810,12 +1755,9 @@
                     loadSheetData(activeSheet, null, false, true);
                     restoreCurrentViewState(savedView);
                 } else {
-                    // Aksi 5/6/7 dapat mengubah lebih dari satu baris, sehingga
-                    // ambil data terbaru dari server, tetapi pertahankan filter & halaman.
                     deleteLocalSheetData(activeSheet);
                     bootstrap.Modal.getInstance(document.getElementById('adminRowEditModal')).hide();
                     loadSheetData(activeSheet, null, true, true);
-                    // Restore dipanggil setelah data server selesai dimuat di bawah.
                     window.__pendingRestoreView = savedView;
                 }
                 showSaveSuccessPopup('Perubahan berhasil tersimpan ke Google Sheet. Tampilan tetap pada filter yang Anda pilih.');
@@ -1834,9 +1776,6 @@
         });
     }
 
-    // ========================= TAMBAH PEMILIH BARU =========================
-    // Form dibuat dinamis berdasarkan header sheet yang sedang digunakan,
-    // sehingga tidak merusak urutan/struktur kolom Google Sheet.
     function voterHeaderIndex(headers, patterns) {
         return headers.findIndex(h => {
             const n = String(h || '').toUpperCase().trim();
@@ -2030,7 +1969,6 @@
             showToast('Silakan Login Admin terlebih dahulu.', 'bg-warning');
             return;
         }
-        // Pemilih baru diarahkan ke DPS agar kode B tercatat pada daftar pemilih sementara.
         if (activeSheet !== 'DPS (SEMENTARA)') {
             const dpsLink = Array.from(document.querySelectorAll('#subCategoryPemilih .nav-link'))
                 .find(el => el.textContent.toUpperCase().includes('DPS (SEMENTARA)'));
@@ -2099,7 +2037,6 @@
         }
         if (coklitIdx !== -1) values[coklitIdx] = 'B';
 
-        // Cari baris terakhir keluarga dengan NKK yang sama. +1 karena rowIndex API adalah nomor baris Sheet.
         let lastSameNkkArrayIndex = -1;
         for (let i = 1; i < currentRawData.length; i++) {
             if (String(currentRawData[i][nkkIdx] || '').trim() === values[nkkIdx]) lastSameNkkArrayIndex = i;
@@ -2190,7 +2127,114 @@
         const chartTitleLeft = document.getElementById('chartTitleLeft');
         const chartTitleRight = document.getElementById('chartTitleRight');
 
-        if (activeSheet === 'INPUT SUARA') {
+        if (activeSheet === 'DPS') {
+            cardLabel1.innerText = "Total Pemilih DPS";
+            cardLabel2.innerText = "Total Pemilih Laki-Laki";
+            cardLabel3.innerText = "Total Pemilih Perempuan";
+            cardLabel4.innerText = "Jumlah RT Terdata";
+
+            chartTitleLeft.innerText = "Grafik Pemilih Berdasarkan Dusun";
+            chartTitleRight.innerText = "Rincian Coklit RT (Laki-Laki vs Perempuan)";
+
+            const dpsSourceData = (dpsSheetDataCache && dpsSheetDataCache.length > 1) ? dpsSheetDataCache : filteredData;
+            const dpsHeaders = dpsSourceData[0];
+            const dpsRows = dpsSourceData.slice(1);
+
+            let dusunIdx = dpsHeaders.findIndex(h => String(h).toUpperCase().includes('DUSUN'));
+            let rtIdx = dpsHeaders.findIndex(h => String(h).toUpperCase().includes('RT'));
+            let jkIdx = dpsHeaders.findIndex(h => {
+                let u = String(h).toUpperCase();
+                return u.includes('JENIS KELAMIN') || u.includes('JK') || u === 'L/P';
+            });
+            let coklitIdx = dpsHeaders.findIndex(h => String(h).toUpperCase().includes('KODE COKLIT') || String(h).toUpperCase().includes('COKLIT'));
+
+            let totalDPS = dpsRows.length;
+            let totalLaki = 0;
+            let totalPerempuan = 0;
+            let dusunMap = {};
+            let rtGenderMap = {};
+
+            dpsRows.forEach(row => {
+                let dusun = dusunIdx !== -1 ? String(row[dusunIdx] || 'Lainnya').trim() : 'Lainnya';
+                let rt = rtIdx !== -1 ? String(row[rtIdx] || '0').trim() : '0';
+                let jk = jkIdx !== -1 ? String(row[jkIdx] || '').toUpperCase().trim() : '';
+                
+                let isLaki = jk === 'L' || jk.includes('LAKI');
+                let isPerempuan = jk === 'P' || jk.includes('PEREM');
+
+                if (isLaki) totalLaki++;
+                if (isPerempuan) totalPerempuan++;
+
+                if (!dusunMap[dusun]) dusunMap[dusun] = 0;
+                dusunMap[dusun]++;
+
+                if (rt !== '0' && rt !== '') {
+                    let formattedRt = `RT ${rt.padStart(2, '0')}`;
+                    if (!rtGenderMap[formattedRt]) {
+                        rtGenderMap[formattedRt] = { L: 0, P: 0 };
+                    }
+                    if (isLaki) rtGenderMap[formattedRt].L++;
+                    else if (isPerempuan) rtGenderMap[formattedRt].P++;
+                }
+            });
+
+            let rtCount = Object.keys(rtGenderMap).length || 36;
+
+            document.getElementById('accTotalCount').innerText = totalDPS;
+            document.getElementById('accMsCount').innerText = totalLaki;
+            document.getElementById('accTmsCount').innerText = totalPerempuan;
+            document.getElementById('accOtherCount').innerText = rtCount;
+
+            const ctx1 = document.getElementById('msTmsChart').getContext('2d');
+            if (msTmsChartInstance) msTmsChartInstance.destroy();
+            msTmsChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(dusunMap),
+                    datasets: [{
+                        label: 'Jumlah Pemilih',
+                        data: Object.values(dusunMap),
+                        backgroundColor: ['#1e3a8a', '#065f46', '#b45309', '#6b21a8', '#0891b2', '#d97706'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+
+            let sortedRtKeys = Object.keys(rtGenderMap).sort((a,b) => {
+                let numA = parseInt(a.replace(/\D/g,'')) || 0;
+                let numB = parseInt(b.replace(/\D/g,'')) || 0;
+                return numA - numB;
+            });
+
+            let dataLakiRt = sortedRtKeys.map(k => rtGenderMap[k].L);
+            let dataPerempuanRt = sortedRtKeys.map(k => rtGenderMap[k].P);
+
+            const ctx2 = document.getElementById('detailedCoklitChart').getContext('2d');
+            if (detailChartInstance) detailChartInstance.destroy();
+            detailChartInstance = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: sortedRtKeys,
+                    datasets: [
+                        { label: 'Laki-Laki', data: dataLakiRt, backgroundColor: '#1e3a8a', borderRadius: 4 },
+                        { label: 'Perempuan', data: dataPerempuanRt, backgroundColor: '#b91c3c', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
+                    scales: { x: { stacked: false, ticks: { font: { size: 9 } } }, y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+
+        } else if (activeSheet === 'INPUT SUARA') {
             cardLabel1.innerText = "Total TPS Masuk";
             cardLabel2.innerText = "Akumulasi Suara Sah";
             cardLabel3.innerText = "Suara Tidak Sah";
@@ -2319,7 +2363,6 @@
             rows.forEach(row => {
                 let val = coklitIdx !== -1 ? String(row[coklitIdx] || '0').trim() : '0';
                 
-                // Perbaikan Logika MS dan TMS
                 if (msCodes.includes(val)) {
                     countMs++;
                 } else if (tmsCodes.includes(val)) {
@@ -2536,7 +2579,6 @@
     function dpsPrintDate(value) {
         if (value === null || value === undefined || value === '') return '';
         const s = dpsPrintText(value);
-        // Keep Spreadsheet-style DD/MM/YYYY and remove any time portion.
         const m = s.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/);
         if (m) return String(m[1]).padStart(2,'0') + '/' + String(m[2]).padStart(2,'0') + '/' + m[3];
         const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -2549,7 +2591,6 @@
     function dpsPrintNik(value) {
         const nik = dpsPrintText(value).replace(/\D/g, '');
         if (!nik) return '';
-        // Partial masking only: 6 first digits + XXX + remaining digits.
         return nik.length >= 10 ? nik.slice(0,6) + 'XXX' + nik.slice(9) : (nik.length > 6 ? nik.slice(0,6) + 'XXX' : nik);
     }
 
@@ -2587,8 +2628,6 @@
         const headers = currentRawData[0] || [];
         if (!headers.length) throw new Error('Data DPS belum tersedia.');
 
-        // CETAK WAJIB MENGIKUTI FILTER YANG SEDANG DIPAKAI DI DASHBOARD.
-        // Jangan kembali ke currentRawData karena itu berarti semua RT tercetak.
         const activeRt = document.getElementById('filterRt')?.value?.trim() || '';
         const activeKeyword = document.getElementById('filterKeyword')?.value?.trim() || '';
         const activeCoklit = document.getElementById('filterCoklit')?.value?.trim() || '';
@@ -2596,9 +2635,6 @@
             ? filteredData.slice(1)
             : currentRawData.slice(1);
 
-        // Pengaman tambahan: bila RT dipilih, cetak hanya RT tersebut.
-        // Ini sengaja dilakukan lagi di fungsi cetak agar tidak mungkin mencetak semua RT
-        // walaupun filteredData belum sempat ter-render ulang.
         const rtIdxForPrint = dpsPrintFind(headers, ['RT','RT DOMISILI','RT ALAMAT']);
         const coklitIdxForPrint = dpsPrintFind(headers, ['KODE COKLIT','COKLIT']);
         if (activeRt && rtIdxForPrint !== -1) {
@@ -2614,12 +2650,11 @@
         const tempatIdx = dpsPrintFind(headers, ['TEMPAT LAHIR']);
         const tglIdx = dpsPrintFind(headers, ['TANGGAL LAHIR','TGL LAHIR']);
         const umurIdx = dpsPrintFind(headers, ['UMUR','USIA']);
-        // STS KAWIN is deliberately first priority, as requested.
         const kawinIdx = dpsPrintFind(headers, ['STS KAWIN','STATUS PERKAWINAN','STATUS KAWIN','PERKAWINAN']);
         const jkIdx = dpsPrintFind(headers, ['JENIS KELAMIN','JK','L/P']);
 
         const msRows = rows.filter(r => {
-            if (!r || r.every(v => dpsPrintText(v) === '')) return false; // blank separator rows
+            if (!r || r.every(v => dpsPrintText(v) === '')) return false;
             const raw = coklitIdx === -1 ? '' : dpsPrintText(r[coklitIdx]).toUpperCase();
             const code = (raw.match(/^(0|1|2|3|4|5|6|7|8|U|B)/) || [raw])[0];
             return msCodes.includes(code);
@@ -2656,7 +2691,6 @@
     }
 
     function printFolioLandscape() {
-        // DPS memakai template resmi khusus. Sheet lain tetap memakai mekanisme print lama.
         if (activeSheet === 'DPS (SEMENTARA)') {
             const area = document.getElementById('printableArea');
             const oldHTML = area ? area.innerHTML : '';
@@ -2704,11 +2738,9 @@
     }
 
     function refreshData() {
-        // Refresh manual = ambil data terbaru dari Google Sheet, tanpa keluar dari filter.
         const savedView = captureCurrentViewState();
         deleteLocalSheetData(activeSheet);
 
-        // Cache upload untuk sheet aktif tidak lagi dianggap tervalidasi.
         try {
             const meta = JSON.parse(localStorage.getItem(LOCAL_DB_META) || 'null');
             if (meta && meta.validatedSheet === activeSheet) {
@@ -2726,7 +2758,6 @@
         updateRealtimeClock();
         setInterval(updateRealtimeClock, 1000);
 
-        // Menampilkan Popup Selamat Datang secara otomatis saat website dibuka
         setTimeout(() => {
             const welcomeModal = new bootstrap.Modal(document.getElementById('welcomePopupModal'));
             welcomeModal.show();
