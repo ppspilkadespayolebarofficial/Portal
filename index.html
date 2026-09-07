@@ -330,15 +330,15 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* ===== FORMAT CETAK DPS FOLIO ===== */
-        #dpsPrintContainer { display:none; }
+        /* ===== FORMAT CETAK  FOLIO ===== */
+        #PrintContainer { display:none; }
         @media print {
             @page { size: 330mm 215mm; margin: 4mm 5mm; }
-            body.printing-dps #printableArea {
+            body.printing- #printableArea {
                 position: static !important; width: 100% !important; padding: 0 !important;
                 margin: 0 !important; border: 0 !important; box-shadow: none !important;
             }
-            body.printing-dps #dpsPrintContainer {
+            body.printing- #dpsPrintContainer {
                 display: block !important; width: 100%; margin: 0; padding: 0;
                 font-family: Arial, Helvetica, sans-serif; color: #000;
             }
@@ -475,8 +475,8 @@
                 </div>
                 <div class="collapsible-submenu" id="subCategoryPemilih">
                     <a class="nav-link" onclick="loadSheetData('DPT AWAL (PMD)', this)"><i class="fas fa-users"></i>DPT AWAL (PMD)</a>
-                    <a class="nav-link" onclick="loadSheetData('DPS (SEMENTARA)', this)"><i class="fas fa-user-clock"></i>DPS (SEMENTARA)</a>
-                    <a class="nav-link" onclick="loadSheetData('DPS', this)"><i class="fas fa-chart-pie"></i>DPS Rekapitulasi & Rincian RT</a>
+                    <a class="nav-link" onclick="loadSheetData('DPS (SEMENTARA)', this)"><i class="fas fa-user-clock"></i>DPS (AWAL)</a>
+                    <a class="nav-link" onclick="loadSheetData('DPS', this)"><i class="fas fa-chart-pie"></i>DPS</a>
                     <a class="nav-link" onclick="loadSheetData('DPTAM (TAMBAHAN)', this)"><i class="fas fa-user-plus"></i>DPTAM (TAMBAHAN)</a>
                     <a class="nav-link" onclick="loadSheetData('DPT (TETAP)', this)"><i class="fas fa-address-book"></i>DPT (TETAP)</a>
                     <a class="nav-link d-none admin-only-menu" id="addVoterMenuLink" onclick="openAddVoterModal()"><i class="fas fa-user-plus"></i>Tambah Pemilih Baru</a>
