@@ -274,6 +274,41 @@
             border-top: 3px solid #b91c3c !important;
         }
 
+        /* Kelompok KK: pemisah tegas dan latar lembut per keluarga */
+        @media print {
+            body.printing-dps #dpsPrintContainer tr.family-start td {
+                border-top: 2.2px solid #8b1531 !important;
+            }
+            body.printing-dps #dpsPrintContainer tr.family-alt td {
+                background: #fff5f7 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta {
+                grid-template-columns: 1fr 1fr;
+                column-gap: 18mm;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta > div {
+                display: grid;
+                grid-template-columns: 31mm 4mm 1fr;
+                row-gap: 1mm;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta span { grid-column: 1; }
+            body.printing-dps #dpsPrintContainer .dps-meta b { grid-column: 2; text-align:center; }
+            body.printing-dps #dpsPrintContainer .dps-meta em { grid-column: 3; font-style:normal; text-align:left; }
+            body.printing-dps #dpsPrintContainer .dps-signature {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            body.printing-dps #dpsPrintContainer .dps-sign-name {
+                min-height: 12mm;
+                padding-top: 8mm;
+                font-weight: 700;
+                text-decoration: none !important;
+                border: 0 !important;
+            }
+        }
+
         .row-index {
             background-color: #f8fafc;
             color: #64748b;
@@ -325,6 +360,22 @@
             backdrop-filter: blur(5px);
         }
 
+        /* ===== MODE PUBLIK: DPS AWAL & DPS HANYA AKUMULASI + GRAFIK ===== */
+        body.public-summary-mode #tableScrollContainer,
+        body.public-summary-mode #paginationContainer {
+            display: none !important;
+        }
+        body.public-summary-mode #toggleChartBtn {
+            display: none !important;
+        }
+        body.public-summary-mode #directChartSection {
+            display: block !important;
+            margin-top: 0 !important;
+        }
+        body.public-summary-mode #directChartSection .public-summary-close {
+            display: none !important;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(-8px); }
             to { opacity: 1; transform: translateY(0); }
@@ -357,7 +408,8 @@
             body.printing-dps #dpsPrintContainer thead { display:table-header-group; }
             body.printing-dps #dpsPrintContainer tr { break-inside:avoid; page-break-inside:avoid; }
             body.printing-dps #dpsPrintContainer th {
-                border:1px solid #000; padding:2.2px 2px; text-align:center;
+                border:1px solid #8b1531; padding:2.2px 2px; text-align:center;
+                background:#8b1531; color:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact;
                 vertical-align:middle; font-weight:700; height:8mm;
             }
             body.printing-dps #dpsPrintContainer td {
@@ -547,7 +599,7 @@
             <div class="card card-custom card-custom-rekap p-4 mb-3 chart-section-box no-print" id="directChartSection">
                 <div class="rekap-title-header d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <h5 class="fw-bold mb-0 fs-6 text-white text-uppercase"><i class="fas fa-chart-bar me-2 text-warning"></i> AKUMULASI DATA & GRAFIK REKAPITULASI: <span id="directChartTitle" class="text-warning">INPUT SUARA</span></h5>
-                    <button class="btn btn-light btn-sm text-dark fw-bold shadow-sm" onclick="toggleChartSection()" title="Tutup Grafik"><i class="fas fa-times me-1"></i> Tutup</button>
+                    <button id="publicSummaryCloseBtn" class="btn btn-light btn-sm text-dark fw-bold shadow-sm public-summary-close" onclick="toggleChartSection()" title="Tutup Grafik"><i class="fas fa-times me-1"></i> Tutup</button>
                 </div>
 
                 <div class="row g-3 mb-4" id="summaryAccumulationCards">
@@ -627,6 +679,16 @@
 
                         <select id="filterRt" class="form-select form-select-sm fw-semibold shadow-sm" style="width: 140px;" onchange="applyFilters()">
                             <option value="">-- Semua RT (1-36) --</option>
+                        </select>
+
+                        <select id="filterDusun" class="form-select form-select-sm fw-semibold shadow-sm" style="width: 165px;" onchange="applyFilters()">
+                            <option value="">-- Semua Dusun --</option>
+                        </select>
+
+                        <select id="filterJenisKelamin" class="form-select form-select-sm fw-semibold shadow-sm" style="width: 165px;" onchange="applyFilters()">
+                            <option value="">-- Semua Jenis Kelamin --</option>
+                            <option value="L">L - Laki-laki</option>
+                            <option value="P">P - Perempuan</option>
                         </select>
 
                         <button class="btn btn-outline-secondary btn-sm shadow-sm" type="button" onclick="resetFilter()" title="Reset Semua Filter"><i class="fas fa-redo"></i></button>
@@ -896,7 +958,10 @@
     let rowsPerPage = 50; 
     let editingTargetRowIndex = null;
     let editingTargetRowData = null;
-    let dpsSheetDataCache = null; 
+    let dpsSheetDataCache = null;
+    const VERSION_CHECK_TTL = 30000;
+    const versionCheckAt = {};
+    const chartRenderSignature = {}; 
     
     const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzqLHfzqRu5g5znrLsCdxDU3FpwKywaO9ds2UuoRhsm3zChuKyRy-7-XybQ8kYdzELfvg/exec';
 
@@ -919,6 +984,28 @@
     const committeeSheets = ['PANITIA PEMUNGUTAN SUARA (PPS)', 'PENGAWAS (BPD)', 'KPPS TPS 01', 'KPPS TPS 02'];
     const voterSheets = ['DPT AWAL (PMD)', 'DPS (SEMENTARA)', 'DPS', 'DPTAM (TAMBAHAN)', 'DPT (TETAP)', 'TAMBAH PEMILIH BARU'];
     const noFilterSheets = ['INPUT SUARA', 'PROFIL CALON KADES', 'TAHAPAN PILKADES', 'PENGADUAN DAN LAYANAN'];
+
+    function isPublicSummarySheet(sheetName = activeSheet) {
+        return !isAdmin && (sheetName === 'DPT AWAL (PMD)' || sheetName === 'DPS (SEMENTARA)');
+    }
+
+    function applyPublicSummaryMode() {
+        const publicSummary = isPublicSummarySheet();
+        document.body.classList.toggle('public-summary-mode', publicSummary);
+
+        const chartSection = document.getElementById('directChartSection');
+        const chartToggleBtn = document.getElementById('toggleChartBtn');
+
+        if (publicSummary) {
+            if (chartSection) chartSection.classList.remove('d-none');
+            if (chartToggleBtn) chartToggleBtn.classList.add('d-none');
+            if (typeof generateCustomChartsAndAccumulation === 'function') {
+                generateCustomChartsAndAccumulation();
+            }
+        } else if (chartToggleBtn) {
+            chartToggleBtn.classList.remove('d-none');
+        }
+    }
 
     function toggleSubMenu(submenuId, headerEl) {
         const submenu = document.getElementById(submenuId);
@@ -1254,9 +1341,17 @@
         }
 
         saveLocalSheetData(sheetName, currentRawData, serverVersion);
-        renderTablePage();
+
         populateRtDropdown();
+        populateDusunDropdown();
         populateRowRtSelect();
+        if (!isPublicSummarySheet(sheetName)) {
+            renderTablePage();
+        } else {
+            const table = document.getElementById('dataTable');
+            if (table) table.innerHTML = '';
+        }
+        applyPublicSummaryMode();
 
         if (!isCommittee && sheetName !== 'TAHAPAN PILKADES' && sheetName !== 'PENGADUAN DAN LAYANAN') {
             generateCustomChartsAndAccumulation();
@@ -1306,12 +1401,15 @@
 
         const isCommittee = committeeSheets.includes(sheetName);
         const isNoFilter = noFilterSheets.includes(sheetName);
+        applyPublicSummaryMode();
         const filterControlsBox = document.getElementById('filterControlsBox');
         const toggleChartBtn = document.getElementById('toggleChartBtn');
         const directChartSection = document.getElementById('directChartSection');
         const filterKeywordWrapper = document.getElementById('filterKeywordWrapper');
         const filterCoklitEl = document.getElementById('filterCoklit');
         const filterRtEl = document.getElementById('filterRt');
+        const filterDusunEl = document.getElementById('filterDusun');
+        const filterJkEl = document.getElementById('filterJenisKelamin');
 
         if (isCommittee) {
             if (filterControlsBox) filterControlsBox.classList.add('d-none');
@@ -1325,10 +1423,14 @@
                 if (filterKeywordWrapper) filterKeywordWrapper.classList.add('d-none');
                 if (filterCoklitEl) filterCoklitEl.classList.add('d-none');
                 if (filterRtEl) filterRtEl.classList.add('d-none');
+                if (filterDusunEl) filterDusunEl.classList.add('d-none');
+                if (filterJkEl) filterJkEl.classList.add('d-none');
             } else {
                 if (filterKeywordWrapper) filterKeywordWrapper.classList.remove('d-none');
                 if (filterCoklitEl) filterCoklitEl.classList.remove('d-none');
                 if (filterRtEl) filterRtEl.classList.remove('d-none');
+                if (filterDusunEl) filterDusunEl.classList.remove('d-none');
+                if (filterJkEl) filterJkEl.classList.remove('d-none');
             }
         }
 
@@ -1386,7 +1488,10 @@
 
     async function refreshSheetIfChanged(sheetName, isCommittee, localData) {
         try {
-            const versionUrl = `${WEB_APP_URL}?action=version&sheet=${encodeURIComponent(sheetName)}&t=${Date.now()}`;
+            const now = Date.now();
+            if (versionCheckAt[sheetName] && (now - versionCheckAt[sheetName]) < VERSION_CHECK_TTL) return;
+            versionCheckAt[sheetName] = now;
+            const versionUrl = `${WEB_APP_URL}?action=version&sheet=${encodeURIComponent(sheetName)}&t=${now}`;
             const response = await fetch(versionUrl, { cache: 'no-store' });
             if (!response.ok) return;
             const result = await response.json();
@@ -1422,6 +1527,17 @@
         }
     }
 
+    function populateDusunDropdown() {
+        const el = document.getElementById('filterDusun');
+        if (!el) return;
+        el.innerHTML = '<option value="">-- Semua Dusun --</option>';
+        const headers = currentRawData?.[0] || [];
+        const idx = headers.findIndex(h => { const u=String(h).toUpperCase(); return u.includes('DUSUN') || u.includes('LINGKUNGAN'); });
+        if (idx === -1) return;
+        const vals = [...new Set((currentRawData || []).slice(1).map(r => String(r[idx] ?? '').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'id'));
+        vals.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); });
+    }
+
     function populateRowRtSelect() {
         const rtSelect = document.getElementById('targetRowRtSelect');
         if (!rtSelect) return;
@@ -1440,28 +1556,40 @@
 
         const headers = currentRawData[0];
         const rows = currentRawData.slice(1);
-        const keyword = document.getElementById('filterKeyword').value.toLowerCase().trim();
-        const selectedCoklit = document.getElementById('filterCoklit').value;
-        const selectedRt = document.getElementById('filterRt').value;
+        const keyword = document.getElementById('filterKeyword')?.value.toLowerCase().trim() || '';
+        const selectedCoklit = document.getElementById('filterCoklit')?.value || '';
+        const selectedRt = document.getElementById('filterRt')?.value || '';
+        const selectedDusun = document.getElementById('filterDusun')?.value || '';
+        const selectedJk = document.getElementById('filterJenisKelamin')?.value || '';
 
-        let coklitIdx = headers.findIndex(h => String(h).toUpperCase().includes('KODE COKLIT') || String(h).toUpperCase().includes('COKLIT'));
-        let rtIdx = headers.findIndex(h => String(h).toUpperCase().includes('RT'));
-        let nkkIdx = headers.findIndex(h => String(h).toUpperCase().includes('NKK') || String(h).toUpperCase().includes('NO KK'));
+        const upper = h => String(h ?? '').toUpperCase();
+        const coklitIdx = headers.findIndex(h => upper(h).includes('KODE COKLIT') || upper(h).includes('COKLIT'));
+        const rtIdx = headers.findIndex(h => upper(h).includes('RT'));
+        const dusunIdx = headers.findIndex(h => upper(h).includes('DUSUN') || upper(h).includes('LINGKUNGAN'));
+        const jkIdx = headers.findIndex(h => upper(h).includes('JENIS KELAMIN') || upper(h) === 'JK' || upper(h) === 'L/P');
+        const nkkIdx = headers.findIndex(h => upper(h).includes('NKK') || upper(h).includes('NO KK'));
 
+        const normRt = v => String(v ?? '').trim().replace(/^RT\.?\s*/i,'');
+        const normJk = v => {
+            const x=String(v ?? '').trim().toUpperCase();
+            return (x==='L'||x.includes('LAKI')) ? 'L' : ((x==='P'||x.includes('PEREM')) ? 'P' : x);
+        };
         const matchedRows = rows.filter(row => {
-            let matchKeyword = keyword === "" || row.some(cell => String(cell || '').toLowerCase().includes(keyword));
-            let matchCoklit = selectedCoklit === "" || (coklitIdx !== -1 && String(row[coklitIdx] || '').trim() === selectedCoklit);
-            let matchRt = selectedRt === "" || (rtIdx !== -1 && String(row[rtIdx] || '').trim() === selectedRt);
-            return matchKeyword && matchCoklit && matchRt;
+            const matchKeyword = !keyword || row.some(cell => String(cell ?? '').toLowerCase().includes(keyword));
+            const matchCoklit = !selectedCoklit || (coklitIdx !== -1 && String(row[coklitIdx] ?? '').trim() === selectedCoklit);
+            const matchRt = !selectedRt || (rtIdx !== -1 && normRt(row[rtIdx]) === normRt(selectedRt));
+            const matchDusun = !selectedDusun || (dusunIdx !== -1 && String(row[dusunIdx] ?? '').trim() === selectedDusun);
+            const matchJk = !selectedJk || (jkIdx !== -1 && normJk(row[jkIdx]) === selectedJk);
+            return matchKeyword && matchCoklit && matchRt && matchDusun && matchJk;
         });
 
-        if (selectedRt !== "" && nkkIdx !== -1) {
-            matchedRows.sort((a, b) => String(a[nkkIdx] || '').trim().localeCompare(String(b[nkkIdx] || '').trim()));
+        if ((selectedRt || selectedDusun) && nkkIdx !== -1) {
+            matchedRows.sort((a,b)=>String(a[nkkIdx]??'').trim().localeCompare(String(b[nkkIdx]??'').trim()));
         }
-
         filteredData = [headers, ...matchedRows];
         currentPage = 1;
-        renderTablePage();
+        chartRenderSignature[activeSheet] = null;
+        if (!isPublicSummarySheet()) renderTablePage();
         generateCustomChartsAndAccumulation();
     }
 
@@ -1469,9 +1597,12 @@
         document.getElementById('filterKeyword').value = '';
         document.getElementById('filterCoklit').value = '';
         document.getElementById('filterRt').value = '';
+        if (document.getElementById('filterDusun')) document.getElementById('filterDusun').value = '';
+        if (document.getElementById('filterJenisKelamin')) document.getElementById('filterJenisKelamin').value = '';
         filteredData = currentRawData;
         currentPage = 1;
-        renderTablePage();
+        chartRenderSignature[activeSheet] = null;
+        if (!isPublicSummarySheet()) renderTablePage();
         generateCustomChartsAndAccumulation();
     }
 
@@ -2102,6 +2233,12 @@
     }
 
     function toggleChartSection() {
+        if (isPublicSummarySheet()) {
+            const section = document.getElementById('directChartSection');
+            if (section) section.classList.remove('d-none');
+            generateCustomChartsAndAccumulation();
+            return;
+        }
         const section = document.getElementById('directChartSection');
         const btnText = document.getElementById('chartToggleText');
         if (section.classList.contains('d-none')) {
@@ -2116,6 +2253,13 @@
 
     function generateCustomChartsAndAccumulation() {
         if (!filteredData || filteredData.length <= 1) return;
+
+        const first = filteredData[1] || [];
+        const last = filteredData[filteredData.length - 1] || [];
+        const signature = `${activeSheet}|${filteredData.length}|${first.join('\x1f')}|${last.join('\x1f')}`;
+        const section = document.getElementById('directChartSection');
+        if (chartRenderSignature[activeSheet] === signature && section && !section.classList.contains('d-none')) return;
+        chartRenderSignature[activeSheet] = signature;
 
         const headers = filteredData[0];
         const rows = filteredData.slice(1);
@@ -2136,7 +2280,7 @@
             chartTitleLeft.innerText = "Grafik Pemilih Berdasarkan Dusun";
             chartTitleRight.innerText = "Rincian Coklit RT (Laki-Laki vs Perempuan)";
 
-            const dpsSourceData = (dpsSheetDataCache && dpsSheetDataCache.length > 1) ? dpsSheetDataCache : filteredData;
+            const dpsSourceData = filteredData;
             const dpsHeaders = dpsSourceData[0];
             const dpsRows = dpsSourceData.slice(1);
 
@@ -2530,6 +2674,7 @@
             adminActionButtons.classList.add('d-none');
             document.querySelectorAll('.admin-only-menu').forEach(el => el.classList.add('d-none'));
         }
+        applyPublicSummaryMode();
     }
 
     function maskCurrentTableForPrint() {
@@ -2589,9 +2734,10 @@
     }
 
     function dpsPrintNik(value) {
+        // Cetak: sensor TEPAT 6 digit paling belakang, digit depan tetap terlihat.
         const nik = dpsPrintText(value).replace(/\D/g, '');
         if (!nik) return '';
-        return nik.length >= 10 ? nik.slice(0,6) + 'XXX' + nik.slice(9) : (nik.length > 6 ? nik.slice(0,6) + 'XXX' : nik);
+        return nik.length > 6 ? nik.slice(0, -6) + 'X'.repeat(6) : 'X'.repeat(nik.length);
     }
 
     function dpsPrintFind(headers, patterns) {
@@ -2624,98 +2770,121 @@
         return out.join(' ');
     }
 
-    function buildDpsPrintHtml() {
-        const headers = currentRawData[0] || [];
-        if (!headers.length) throw new Error('Data DPS belum tersedia.');
+    function extractCommitteeNames(data) {
+        const out = { ketua:'', wakil:'', sekretaris:'', anggota:'' };
+        if (!Array.isArray(data) || data.length < 2) return out;
+        const rows = data.slice(1);
+        const headers = (data[0] || []).map(v => String(v ?? '').toUpperCase());
+        let nameIdx = headers.findIndex(h => h === 'NAMA' || h.includes('NAMA LENGKAP'));
+        let roleIdx = headers.findIndex(h => h.includes('JABATAN') || h.includes('POSISI') || h.includes('KEDUDUKAN') || h.includes('PERAN'));
+        const assign = (role,name) => {
+            const r=String(role??'').toUpperCase(), n=String(name??'').trim(); if(!n)return;
+            if(r.includes('WAKIL') && r.includes('KETUA')) out.wakil=n;
+            else if(r.includes('KETUA')) out.ketua=n;
+            else if(r.includes('SEKRETARIS')) out.sekretaris=n;
+            else if(r.includes('ANGGOTA')) out.anggota=n;
+        };
+        rows.forEach(r => {
+            if(roleIdx !== -1 && nameIdx !== -1) assign(r[roleIdx], r[nameIdx]);
+            else {
+                const text=r.map(v=>String(v??'').trim()).join(' | '), u=text.toUpperCase();
+                const candidate=r.find(v=>String(v??'').trim() && !['KETUA','WAKIL KETUA','SEKRETARIS','ANGGOTA'].includes(String(v??'').trim().toUpperCase()));
+                if(u.includes('WAKIL KETUA')) assign('WAKIL KETUA',candidate);
+                else if(u.includes('SEKRETARIS')) assign('SEKRETARIS',candidate);
+                else if(u.includes('ANGGOTA')) assign('ANGGOTA',candidate);
+                else if(u.includes('KETUA')) assign('KETUA',candidate);
+            }
+        });
+        return out;
+    }
 
+    function buildDpsPrintHtml(committeeNames = {}) {
+        const headers = currentRawData[0] || [];
+        if (!headers.length) throw new Error('Data pemilih belum tersedia.');
         const activeRt = document.getElementById('filterRt')?.value?.trim() || '';
         const activeKeyword = document.getElementById('filterKeyword')?.value?.trim() || '';
         const activeCoklit = document.getElementById('filterCoklit')?.value?.trim() || '';
-        let rows = (Array.isArray(filteredData) && filteredData.length > 0)
-            ? filteredData.slice(1)
-            : currentRawData.slice(1);
+        const activeDusun = document.getElementById('filterDusun')?.value?.trim() || '';
+        const activeJk = document.getElementById('filterJenisKelamin')?.value?.trim() || '';
+        let rows = Array.isArray(filteredData) && filteredData.length ? filteredData.slice(1) : currentRawData.slice(1);
+        const rtIdx = dpsPrintFind(headers,['RT','RT DOMISILI','RT ALAMAT']);
+        const coklitIdx = dpsPrintFind(headers,['KODE COKLIT','COKLIT']);
+        const dusunIdx = dpsPrintFind(headers,['DUSUN','LINGKUNGAN']);
+        const jkIdx = dpsPrintFind(headers,['JENIS KELAMIN','JK','L/P']);
+        const nkkIdx = dpsPrintFind(headers,['NKK','NO KK','NOMOR KARTU KELUARGA']);
+        const nikIdx = dpsPrintFind(headers,['NIK','NO KTP','NOMOR INDUK KEPENDUDUKAN']);
+        const namaIdx = dpsPrintFind(headers,['NAMA LENGKAP','NAMA']);
+        const tempatIdx = dpsPrintFind(headers,['TEMPAT LAHIR']);
+        const tglIdx = dpsPrintFind(headers,['TANGGAL LAHIR','TGL LAHIR']);
+        const umurIdx = dpsPrintFind(headers,['UMUR','USIA']);
+        const kawinIdx = dpsPrintFind(headers,['STS KAWIN','STATUS PERKAWINAN','STATUS KAWIN','PERKAWINAN']);
+        const normRt=v=>String(v??'').trim().replace(/^RT\.?\s*/i,'');
+        const normJk=v=>dpsPrintGender(v);
+        if(activeRt && rtIdx!==-1) rows=rows.filter(r=>normRt(r[rtIdx])===normRt(activeRt));
+        if(activeKeyword){const q=activeKeyword.toLowerCase();rows=rows.filter(r=>r.some(v=>dpsPrintText(v).toLowerCase().includes(q)));}
+        if(activeCoklit && coklitIdx!==-1) rows=rows.filter(r=>dpsPrintText(r[coklitIdx]).toUpperCase()===activeCoklit.toUpperCase());
+        if(activeDusun && dusunIdx!==-1) rows=rows.filter(r=>dpsPrintText(r[dusunIdx])===activeDusun);
+        if(activeJk && jkIdx!==-1) rows=rows.filter(r=>normJk(r[jkIdx])===activeJk);
+        rows=rows.filter(r=>r && r.some(v=>dpsPrintText(v)!==''));
 
-        const rtIdxForPrint = dpsPrintFind(headers, ['RT','RT DOMISILI','RT ALAMAT']);
-        const coklitIdxForPrint = dpsPrintFind(headers, ['KODE COKLIT','COKLIT']);
-        if (activeRt && rtIdxForPrint !== -1) {
-            rows = rows.filter(r => dpsPrintText(r[rtIdxForPrint]).replace(/^RT\.?\s*/i,'') === activeRt.replace(/^RT\.?\s*/i,''));
-        }
-        if (activeCoklit && coklitIdxForPrint !== -1) {
-            rows = rows.filter(r => dpsPrintText(r[coklitIdxForPrint]) === activeCoklit);
-        }
-
-        const coklitIdx = dpsPrintFind(headers, ['KODE COKLIT','COKLIT']);
-        const nikIdx = dpsPrintFind(headers, ['NIK','NO KTP','NOMOR INDUK KEPENDUDUKAN']);
-        const namaIdx = dpsPrintFind(headers, ['NAMA LENGKAP','NAMA']);
-        const tempatIdx = dpsPrintFind(headers, ['TEMPAT LAHIR']);
-        const tglIdx = dpsPrintFind(headers, ['TANGGAL LAHIR','TGL LAHIR']);
-        const umurIdx = dpsPrintFind(headers, ['UMUR','USIA']);
-        const kawinIdx = dpsPrintFind(headers, ['STS KAWIN','STATUS PERKAWINAN','STATUS KAWIN','PERKAWINAN']);
-        const jkIdx = dpsPrintFind(headers, ['JENIS KELAMIN','JK','L/P']);
-
-        const msRows = rows.filter(r => {
-            if (!r || r.every(v => dpsPrintText(v) === '')) return false;
-            const raw = coklitIdx === -1 ? '' : dpsPrintText(r[coklitIdx]).toUpperCase();
-            const code = (raw.match(/^(0|1|2|3|4|5|6|7|8|U|B)/) || [raw])[0];
-            return msCodes.includes(code);
+        const isDptam=activeSheet==='DPTAM (TAMBAHAN)', isDpt=activeSheet==='DPT (TETAP)';
+        const title=isDpt?'DAFTAR PEMILIH TETAP (DPT)':isDptam?'DAFTAR PEMILIH TAMBAHAN (DPTAM)':'DAFTAR PEMILIH SEMENTARA (DPS)';
+        const shortTitle=isDpt?'DPT':isDptam?'DPTAM':'DPS';
+        const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        let html='<div id="dpsPrintContainer">';
+        html+='<div class="dps-first-page-title">'+title+'<br>PEMILIHAN KEPALA DESA TAHUN 2026</div>';
+        html+='<div class="dps-meta"><div><span>DESA</span><b>:</b><em>PAYO LEBAR</em><span>KECAMATAN</span><b>:</b><em>SINGKUT</em></div><div><span>KABUPATEN</span><b>:</b><em>SAROLANGUN</em><span>PROVINSI</span><b>:</b><em>JAMBI</em></div></div>';
+        html+='<table><thead><tr><th class="c-no">NO</th><th class="c-nik">NIK</th><th class="c-nama">NAMA PEMILIH</th><th class="c-tempat">TEMPAT LAHIR</th><th class="c-tgl">TANGGAL<br>LAHIR</th><th class="c-umur">USIA</th><th class="c-kawin">STS<br>KAWIN</th><th class="c-jk">L/P</th><th class="c-alamat">DUSUN / ALAMAT<br>RT DOMISILI</th><th class="c-ket">KET</th></tr></thead><tbody>';
+        let laki=0,perempuan=0,lastNkk=null,familyNo=0,alt=false;
+        rows.forEach((r,i)=>{
+            const nkk=nkkIdx!==-1?dpsPrintText(r[nkkIdx]):'';
+            const newFamily=nkk && nkk!==lastNkk;
+            if(newFamily){familyNo++;alt=!alt;}
+            lastNkk=nkk||lastNkk;
+            const jk=jkIdx!==-1?dpsPrintGender(r[jkIdx]):''; if(jk==='L')laki++;else if(jk==='P')perempuan++;
+            const cls=(newFamily?' family-start':'')+(alt?' family-alt':'');
+            html+='<tr class="'+cls.trim()+'">';
+            html+='<td class="c-no" style="text-align:center">'+(i+1)+'</td>';
+            html+='<td class="c-nik" style="text-align:center">'+esc(nikIdx!==-1?dpsPrintNik(r[nikIdx]):'')+'</td>';
+            html+='<td class="c-nama">'+esc(namaIdx!==-1?r[namaIdx]:'')+'</td>';
+            html+='<td class="c-tempat">'+esc(tempatIdx!==-1?r[tempatIdx]:'')+'</td>';
+            html+='<td class="c-tgl" style="text-align:center">'+esc(tglIdx!==-1?dpsPrintDate(r[tglIdx]):'')+'</td>';
+            html+='<td class="c-umur" style="text-align:center">'+esc(umurIdx!==-1?r[umurIdx]:'')+'</td>';
+            html+='<td class="c-kawin" style="text-align:center">'+esc(kawinIdx!==-1?dpsPrintKawin(r[kawinIdx]):'')+'</td>';
+            html+='<td class="c-jk" style="text-align:center">'+esc(jk)+'</td>';
+            html+='<td class="c-alamat">'+esc(dpsPrintAddress(r,headers))+'</td><td class="c-ket"></td></tr>';
         });
-
-        const esc = v => String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-        let html = '<div id="dpsPrintContainer">';
-        html += '<div class="dps-first-page-title">DAFTAR PEMILIH SEMENTARA (DPS)<br>PEMILIHAN KEPALA DESA TAHUN 2026</div>';
-        html += '<div class="dps-meta"><div>DESA : PAYO LEBAR<br>KECAMATAN : SINGKUT</div><div>KABUPATEN : SAROLANGUN<br>PROVINSI : JAMBI</div></div>';
-        html += '<table><thead><tr>';
-        html += '<th class="c-no">NO</th><th class="c-nik">NIK</th><th class="c-nama">NAMA PEMILIH</th><th class="c-tempat">TEMPAT LAHIR</th><th class="c-tgl">TANGGAL,<br>BULAN DAN<br>TAHUN LAHIR</th><th class="c-umur">UMUR<br>(TAHUN)</th><th class="c-kawin">STATUS<br>PERKAWINAN<br>(B/S/P)</th><th class="c-jk">JENIS<br>KELAMIN</th><th class="c-alamat">ALAMAT TEMPAT TINGGAL<br>RT / DUSUN</th><th class="c-ket">KET</th></tr></thead><tbody>';
-        let laki = 0, perempuan = 0;
-        msRows.forEach((r,i) => {
-            const jk = jkIdx !== -1 ? dpsPrintGender(r[jkIdx]) : '';
-            if (jk === 'L') laki++; else if (jk === 'P') perempuan++;
-            html += '<tr>';
-            html += '<td class="c-no" style="text-align:center">' + (i+1) + '</td>';
-            html += '<td class="c-nik" style="text-align:center">' + esc(nikIdx !== -1 ? dpsPrintNik(r[nikIdx]) : '') + '</td>';
-            html += '<td class="c-nama">' + esc(namaIdx !== -1 ? r[namaIdx] : '') + '</td>';
-            html += '<td class="c-tempat">' + esc(tempatIdx !== -1 ? r[tempatIdx] : '') + '</td>';
-            html += '<td class="c-tgl" style="text-align:center">' + esc(tglIdx !== -1 ? dpsPrintDate(r[tglIdx]) : '') + '</td>';
-            html += '<td class="c-umur" style="text-align:center">' + esc(umurIdx !== -1 ? r[umurIdx] : '') + '</td>';
-            html += '<td class="c-kawin" style="text-align:center">' + esc(kawinIdx !== -1 ? dpsPrintKawin(r[kawinIdx]) : '') + '</td>';
-            html += '<td class="c-jk" style="text-align:center">' + esc(jk) + '</td>';
-            html += '<td class="c-alamat">' + esc(dpsPrintAddress(r, headers)) + '</td>';
-            html += '<td class="c-ket"></td></tr>';
-        });
-        html += '</tbody></table>';
-        html += '<div class="dps-summary"><div>JUMLAH DPS LAKI-LAKI : <u>' + laki + '</u></div><div>JUMLAH DPS PEREMPUAN : <u>' + perempuan + '</u></div><div>JUMLAH TOTAL DPS (1+2) : <u>' + msRows.length + '</u></div></div>';
-        html += '<div class="dps-notes"><b>KETERANGAN :</b><br>B = Belum Kawin<br>S = Sudah Kawin<br>P = Pernah Kawin<br>LK = Laki-laki<br>Pr = Perempuan</div>';
-        html += '<div class="dps-signature"><div>PANITIA PEMILIHAN KEPALA DESA</div><div class="dps-sign-grid"><div>KETUA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>WAKIL KETUA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>SEKRETARIS<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div><div>KETUA, ANGGOTA<div class="dps-sign-space"></div><div class="dps-sign-line">________________________</div></div></div></div>';
-        html += '</div>';
+        html+='</tbody></table>';
+        html+='<div class="dps-summary"><div>JUMLAH '+shortTitle+' LAKI-LAKI : <u>'+laki+'</u></div><div>JUMLAH '+shortTitle+' PEREMPUAN : <u>'+perempuan+'</u></div><div>JUMLAH TOTAL '+shortTitle+' : <u>'+rows.length+'</u></div></div>';
+        html+='<div class="dps-notes"><b>KETERANGAN :</b><br>B = Belum Kawin &nbsp;&nbsp; S = Sudah Kawin &nbsp;&nbsp; P = Pernah Kawin &nbsp;&nbsp; L = Laki-laki &nbsp;&nbsp; P = Perempuan</div>';
+        html+='<div class="dps-signature"><div>PANITIA PEMILIHAN KEPALA DESA</div><div class="dps-sign-grid">';
+        html+='<div>KETUA<div class="dps-sign-name">'+esc(committeeNames.ketua||'')+'</div></div>';
+        html+='<div>WAKIL KETUA<div class="dps-sign-name">'+esc(committeeNames.wakil||'')+'</div></div>';
+        html+='<div>SEKRETARIS<div class="dps-sign-name">'+esc(committeeNames.sekretaris||'')+'</div></div>';
+        html+='<div>KETUA, ANGGOTA<div class="dps-sign-name">'+esc(committeeNames.anggota||'')+'</div></div></div></div></div>';
         return html;
     }
 
-    function printFolioLandscape() {
-        if (activeSheet === 'DPS (SEMENTARA)') {
-            const area = document.getElementById('printableArea');
-            const oldHTML = area ? area.innerHTML : '';
-            try {
+    async function printFolioLandscape() {
+        const voterPrintSheets=['DPS (SEMENTARA)','DPS','DPTAM (TAMBAHAN)','DPT (TETAP)'];
+        if(voterPrintSheets.includes(activeSheet)){
+            const area=document.getElementById('printableArea'), oldHTML=area?area.innerHTML:'';
+            try{
                 document.body.classList.add('printing-dps');
-                if (area) area.innerHTML = buildDpsPrintHtml();
+                let committeeData=getLocalSheetData('PANITIA PEMUNGUTAN SUARA (PPS)');
+                if(!committeeData){
+                    try{const res=await fetch(`${WEB_APP_URL}?action=getData&sheet=${encodeURIComponent('PANITIA PEMUNGUTAN SUARA (PPS)')}&t=${Date.now()}`,{cache:'no-store'});const data=await res.json();if(Array.isArray(data))committeeData=data;}catch(e){console.warn('Data panitia tidak tersedia:',e);}
+                }
+                if(area) area.innerHTML=buildDpsPrintHtml(extractCommitteeNames(committeeData));
+                await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
                 window.print();
-            } finally {
-                if (area) area.innerHTML = oldHTML;
-                document.body.classList.remove('printing-dps');
-            }
+            }finally{if(area)area.innerHTML=oldHTML;document.body.classList.remove('printing-dps');}
             return;
         }
-
-        const table = document.getElementById('dataTable');
-        const originalTableHTML = table ? table.innerHTML : '';
-        document.getElementById('printSheetName').innerText = activeSheet;
+        const table=document.getElementById('dataTable'), original=table?table.innerHTML:'';
+        document.getElementById('printSheetName').innerText=activeSheet;
         document.getElementById('printHeader').classList.remove('d-none');
-        try {
-            maskCurrentTableForPrint();
-            window.print();
-        } finally {
-            if (table) table.innerHTML = originalTableHTML;
-            document.getElementById('printHeader').classList.add('d-none');
-        }
+        try{maskCurrentTableForPrint();window.print();}finally{if(table)table.innerHTML=original;document.getElementById('printHeader').classList.add('d-none');}
     }
 
     function exportToExcel() {
@@ -2749,6 +2918,8 @@
         } catch (e) {}
 
         window.__pendingRestoreView = savedView;
+        delete versionCheckAt[activeSheet];
+        chartRenderSignature[activeSheet] = null;
         loadSheetData(activeSheet, null, true, true);
         showToast("Mengambil data terbaru dari Google Sheet...", "bg-info");
     }
