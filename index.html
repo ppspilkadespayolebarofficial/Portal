@@ -447,6 +447,34 @@
             body.printing-dps #dpsPrintContainer .dps-page-note {
                 text-align:right; font-size:7.5px; margin-top:1mm;
             }
+            body.printing-dps #dpsPrintContainer .dps-page {
+                min-height: 202mm;
+                box-sizing: border-box;
+                break-after: page;
+                page-break-after: always;
+                overflow: hidden;
+                display:flex;
+                flex-direction:column;
+            }
+            body.printing-dps #dpsPrintContainer .dps-page:last-child {
+                break-after: auto;
+                page-break-after: auto;
+            }
+            body.printing-dps #dpsPrintContainer .dpt-candidate-paraf {
+                display:grid; grid-template-columns:repeat(5,1fr); gap:5mm;
+                margin-top:2mm; font-size:8.5px; font-weight:700; text-align:center;
+                break-inside:avoid; page-break-inside:avoid;
+                margin-top:auto;
+            }
+            body.printing-dps #dpsPrintContainer .dpt-candidate-paraf .paraf-box {
+                border:1px solid #000; min-height:8mm; padding:1mm 1mm 0;
+            }
+            body.printing-dps #dpsPrintContainer .dpt-candidate-paraf .paraf-space { height:5mm; }
+            body.printing-dps #dpsPrintContainer .dpt-candidate-paraf-label { font-size:8px; margin-bottom:1mm; }
+            body.printing-dps #dpsPrintContainer .c-ket { text-align:center; }
+            body.printing-dps #dpsPrintContainer .c-alamat { width:19%; }
+            body.printing-dps #dpsPrintContainer .c-ket { width:7%; text-align:center; }
+
             body.printing-dps #tableScrollContainer,
             body.printing-dps #printHeader { display:none !important; }
         }
@@ -678,6 +706,10 @@
 
                         <select id="filterRt" class="form-select form-select-sm fw-semibold shadow-sm" style="width: 140px;" onchange="applyFilters()">
                             <option value="">-- Semua RT (1-36) --</option>
+                        </select>
+
+                        <select id="filterTps" class="form-select form-select-sm fw-semibold shadow-sm d-none" style="width: 140px;" onchange="applyFilters()">
+                            <option value="">-- Semua TPS --</option>
                         </select>
 
                         <select id="filterDusun" class="form-select form-select-sm fw-semibold shadow-sm" style="width: 165px;" onchange="applyFilters()">
@@ -1336,6 +1368,7 @@
         saveLocalSheetData(sheetName, currentRawData, serverVersion);
 
         populateRtDropdown();
+        populateTpsDropdown();
         populateDusunDropdown();
         populateRowRtSelect();
         if (!isPublicSummarySheet(sheetName)) {
@@ -1385,6 +1418,7 @@
             document.getElementById('filterKeyword').value = '';
             document.getElementById('filterCoklit').value = '';
             document.getElementById('filterRt').value = '';
+            if (document.getElementById('filterTps')) document.getElementById('filterTps').value = '';
         }
 
         if (element) {
@@ -1401,6 +1435,7 @@
         const filterKeywordWrapper = document.getElementById('filterKeywordWrapper');
         const filterCoklitEl = document.getElementById('filterCoklit');
         const filterRtEl = document.getElementById('filterRt');
+        const filterTpsEl = document.getElementById('filterTps');
         const filterDusunEl = document.getElementById('filterDusun');
         const filterJkEl = document.getElementById('filterJenisKelamin');
 
@@ -1416,12 +1451,18 @@
                 if (filterKeywordWrapper) filterKeywordWrapper.classList.add('d-none');
                 if (filterCoklitEl) filterCoklitEl.classList.add('d-none');
                 if (filterRtEl) filterRtEl.classList.add('d-none');
+                if (filterTpsEl) filterTpsEl.classList.add('d-none');
                 if (filterDusunEl) filterDusunEl.classList.add('d-none');
                 if (filterJkEl) filterJkEl.classList.add('d-none');
             } else {
                 if (filterKeywordWrapper) filterKeywordWrapper.classList.remove('d-none');
                 if (filterCoklitEl) filterCoklitEl.classList.remove('d-none');
                 if (filterRtEl) filterRtEl.classList.remove('d-none');
+                // Filter TPS khusus Admin pada DPT (TETAP). Menu lain tidak berubah.
+                if (filterTpsEl) {
+                    if (isAdmin && sheetName === 'DPT (TETAP)') filterTpsEl.classList.remove('d-none');
+                    else filterTpsEl.classList.add('d-none');
+                }
                 if (filterDusunEl) filterDusunEl.classList.remove('d-none');
                 if (filterJkEl) filterJkEl.classList.remove('d-none');
             }
@@ -1520,6 +1561,32 @@
         }
     }
 
+    function populateTpsDropdown() {
+        const el = document.getElementById('filterTps');
+        if (!el) return;
+        el.innerHTML = '<option value="">-- Semua TPS --</option>';
+        if (!isAdmin || activeSheet !== 'DPT (TETAP)') {
+            el.classList.add('d-none');
+            return;
+        }
+        const headers = currentRawData?.[0] || [];
+        const idx = headers.findIndex(h => {
+            const u = String(h ?? '').toUpperCase().trim();
+            return u === 'TPS' || u.includes('TPS');
+        });
+        if (idx === -1) return;
+        const vals = [...new Set((currentRawData || []).slice(1)
+            .map(r => String(r[idx] ?? '').trim())
+            .filter(Boolean))]
+            .sort((a,b) => a.localeCompare(b, 'id', {numeric:true}));
+        vals.forEach(v => {
+            const o = document.createElement('option');
+            o.value = v;
+            o.textContent = /^TPS\s*/i.test(v) ? v : `TPS ${v}`;
+            el.appendChild(o);
+        });
+    }
+
     function populateDusunDropdown() {
         const el = document.getElementById('filterDusun');
         if (!el) return;
@@ -1552,12 +1619,14 @@
         const keyword = document.getElementById('filterKeyword')?.value.toLowerCase().trim() || '';
         const selectedCoklit = document.getElementById('filterCoklit')?.value || '';
         const selectedRt = document.getElementById('filterRt')?.value || '';
+        const selectedTps = document.getElementById('filterTps')?.value || '';
         const selectedDusun = document.getElementById('filterDusun')?.value || '';
         const selectedJk = document.getElementById('filterJenisKelamin')?.value || '';
 
         const upper = h => String(h ?? '').toUpperCase();
         const coklitIdx = headers.findIndex(h => upper(h).includes('KODE COKLIT') || upper(h).includes('COKLIT'));
         const rtIdx = headers.findIndex(h => upper(h).includes('RT'));
+        const tpsIdx = headers.findIndex(h => upper(h) === 'TPS' || upper(h).includes('TPS'));
         const dusunIdx = headers.findIndex(h => upper(h).includes('DUSUN') || upper(h).includes('LINGKUNGAN'));
         const jkIdx = headers.findIndex(h => upper(h).includes('JENIS KELAMIN') || upper(h) === 'JK' || upper(h) === 'L/P');
         const nkkIdx = headers.findIndex(h => upper(h).includes('NKK') || upper(h).includes('NO KK'));
@@ -1571,9 +1640,10 @@
             const matchKeyword = !keyword || row.some(cell => String(cell ?? '').toLowerCase().includes(keyword));
             const matchCoklit = !selectedCoklit || (coklitIdx !== -1 && String(row[coklitIdx] ?? '').trim() === selectedCoklit);
             const matchRt = !selectedRt || (rtIdx !== -1 && normRt(row[rtIdx]) === normRt(selectedRt));
+            const matchTps = !selectedTps || (tpsIdx !== -1 && String(row[tpsIdx] ?? '').trim().replace(/^TPS\s*/i,'') === String(selectedTps).trim().replace(/^TPS\s*/i,''));
             const matchDusun = !selectedDusun || (dusunIdx !== -1 && String(row[dusunIdx] ?? '').trim() === selectedDusun);
             const matchJk = !selectedJk || (jkIdx !== -1 && normJk(row[jkIdx]) === selectedJk);
-            return matchKeyword && matchCoklit && matchRt && matchDusun && matchJk;
+            return matchKeyword && matchCoklit && matchRt && matchTps && matchDusun && matchJk;
         });
 
         if ((selectedRt || selectedDusun) && nkkIdx !== -1) {
@@ -1590,6 +1660,7 @@
         document.getElementById('filterKeyword').value = '';
         document.getElementById('filterCoklit').value = '';
         document.getElementById('filterRt').value = '';
+        if (document.getElementById('filterTps')) document.getElementById('filterTps').value = '';
         if (document.getElementById('filterDusun')) document.getElementById('filterDusun').value = '';
         if (document.getElementById('filterJenisKelamin')) document.getElementById('filterJenisKelamin').value = '';
         filteredData = currentRawData;
@@ -1762,6 +1833,7 @@
             keyword: document.getElementById('filterKeyword')?.value || '',
             coklit: document.getElementById('filterCoklit')?.value || '',
             rt: document.getElementById('filterRt')?.value || '',
+            tps: document.getElementById('filterTps')?.value || '',
             page: currentPage
         };
     }
@@ -1771,9 +1843,11 @@
         const keyword = document.getElementById('filterKeyword');
         const coklit = document.getElementById('filterCoklit');
         const rt = document.getElementById('filterRt');
+        const tps = document.getElementById('filterTps');
         if (keyword) keyword.value = view.keyword;
         if (coklit) coklit.value = view.coklit;
         if (rt) rt.value = view.rt;
+        if (tps) tps.value = view.tps || '';
         applyFilters();
         const totalPages = Math.max(1, Math.ceil((filteredData?.length ? filteredData.length - 1 : 0) / rowsPerPage));
         currentPage = Math.min(Math.max(1, view.page || 1), totalPages);
@@ -2811,12 +2885,14 @@
         const headers = currentRawData[0] || [];
         if (!headers.length) throw new Error('Data pemilih belum tersedia.');
         const activeRt = document.getElementById('filterRt')?.value?.trim() || '';
+        const activeTps = document.getElementById('filterTps')?.value?.trim() || '';
         const activeKeyword = document.getElementById('filterKeyword')?.value?.trim() || '';
         const activeCoklit = document.getElementById('filterCoklit')?.value?.trim() || '';
         const activeDusun = document.getElementById('filterDusun')?.value?.trim() || '';
         const activeJk = document.getElementById('filterJenisKelamin')?.value?.trim() || '';
         let rows = Array.isArray(filteredData) && filteredData.length ? filteredData.slice(1) : currentRawData.slice(1);
         const rtIdx = dpsPrintFind(headers,['RT','RT DOMISILI','RT ALAMAT']);
+        const tpsIdx = dpsPrintFind(headers,['TPS','NOMOR TPS','NO TPS']);
         const coklitIdx = dpsPrintFind(headers,['KODE COKLIT','COKLIT']);
         const dusunIdx = dpsPrintFind(headers,['DUSUN','LINGKUNGAN']);
         const jkIdx = dpsPrintFind(headers,['JENIS KELAMIN','JK','L/P']);
@@ -2830,6 +2906,7 @@
         const normRt=v=>String(v??'').trim().replace(/^RT\.?\s*/i,'');
         const normJk=v=>dpsPrintGender(v);
         if(activeRt && rtIdx!==-1) rows=rows.filter(r=>normRt(r[rtIdx])===normRt(activeRt));
+        if(activeTps && tpsIdx!==-1) rows=rows.filter(r=>dpsPrintText(r[tpsIdx]).replace(/^TPS\s*/i,'')===activeTps.replace(/^TPS\s*/i,''));
         if(activeKeyword){const q=activeKeyword.toLowerCase();rows=rows.filter(r=>r.some(v=>dpsPrintText(v).toLowerCase().includes(q)));}
         if(activeCoklit && coklitIdx!==-1) rows=rows.filter(r=>dpsPrintText(r[coklitIdx]).toUpperCase()===activeCoklit.toUpperCase());
         if(activeDusun && dusunIdx!==-1) rows=rows.filter(r=>dpsPrintText(r[dusunIdx])===activeDusun);
@@ -2841,36 +2918,65 @@
         const shortTitle=isDpt?'DPT':isDptam?'DPTAM':'DPS';
         const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         let html='<div id="dpsPrintContainer">';
-        html+='<div class="dps-first-page-title">'+title+'<br>PEMILIHAN KEPALA DESA TAHUN 2026</div>';
-        html+='<div class="dps-meta"><div><span>DESA</span><b>:</b><em>PAYO LEBAR</em><span>KECAMATAN</span><b>:</b><em>SINGKUT</em></div><div><span>KABUPATEN</span><b>:</b><em>SAROLANGUN</em><span>PROVINSI</span><b>:</b><em>JAMBI</em></div></div>';
-        html+='<table><thead><tr><th class="c-no">NO</th><th class="c-nik">NIK</th><th class="c-nama">NAMA PEMILIH</th><th class="c-tempat">TEMPAT LAHIR</th><th class="c-tgl">TANGGAL<br>LAHIR</th><th class="c-umur">USIA</th><th class="c-kawin">STS<br>KAWIN</th><th class="c-jk">L/P</th><th class="c-alamat">DUSUN / ALAMAT<br>RT DOMISILI</th><th class="c-ket">KET</th></tr></thead><tbody>';
+        const rowsPerPage = 33;
+        const totalPages = Math.max(1, Math.ceil(rows.length / rowsPerPage));
+        const makeThead = () => '<thead><tr><th class="c-no">NO</th><th class="c-nik">NIK</th><th class="c-nama">NAMA PEMILIH</th><th class="c-tempat">TEMPAT LAHIR</th><th class="c-tgl">TANGGAL<br>LAHIR</th><th class="c-umur">USIA</th><th class="c-kawin">STS<br>KAWIN</th><th class="c-jk">L/P</th><th class="c-alamat">DUSUN / ALAMAT<br>RT DOMISILI</th><th class="c-ket">TPS</th></tr></thead>';
+        const makeCandidateParaf = () => {
+            let p='<div class="dpt-candidate-paraf">';
+            for(let no=1; no<=5; no++) p+='<div class="paraf-box"><div class="dpt-candidate-paraf-label">PARAF CALON '+no+'</div><div class="paraf-space"></div></div>';
+            return p+'</div>';
+        };
+        const makeRows = (pageRows, offset) => {
+            let out='';
+            pageRows.forEach((r,localIndex)=>{
+                const i=offset+localIndex;
+                const nkk=nkkIdx!==-1?dpsPrintText(r[nkkIdx]):'';
+                const newFamily=nkk && nkk!==lastNkk;
+                if(newFamily){familyNo++;alt=!alt;}
+                lastNkk=nkk||lastNkk;
+                const jk=jkIdx!==-1?dpsPrintGender(r[jkIdx]):'';
+                if(jk==='L')laki++; else if(jk==='P')perempuan++;
+                const cls=(newFamily?' family-start':'')+(alt?' family-alt':'');
+                out+='<tr class="'+cls.trim()+'">';
+                out+='<td class="c-no" style="text-align:center">'+(i+1)+'</td>';
+                out+='<td class="c-nik" style="text-align:center">'+esc(nikIdx!==-1?dpsPrintNik(r[nikIdx]):'')+'</td>';
+                out+='<td class="c-nama">'+esc(namaIdx!==-1?r[namaIdx]:'')+'</td>';
+                out+='<td class="c-tempat">'+esc(tempatIdx!==-1?r[tempatIdx]:'')+'</td>';
+                out+='<td class="c-tgl" style="text-align:center">'+esc(tglIdx!==-1?dpsPrintDate(r[tglIdx]):'')+'</td>';
+                out+='<td class="c-umur" style="text-align:center">'+esc(umurIdx!==-1?r[umurIdx]:'')+'</td>';
+                out+='<td class="c-kawin" style="text-align:center">'+esc(kawinIdx!==-1?dpsPrintKawin(r[kawinIdx]):'')+'</td>';
+                out+='<td class="c-jk" style="text-align:center">'+esc(jk)+'</td>';
+                const tpsValue=tpsIdx!==-1?dpsPrintText(r[tpsIdx]):'';
+                const ketValue=isDpt?(tpsValue?( /^TPS\s*/i.test(tpsValue)?tpsValue:'TPS '+tpsValue):''):'';
+                out+='<td class="c-alamat">'+esc(dpsPrintAddress(r,headers))+'</td><td class="c-ket">'+esc(ketValue)+'</td></tr>';
+            });
+            return out;
+        };
+
         let laki=0,perempuan=0,lastNkk=null,familyNo=0,alt=false;
-        rows.forEach((r,i)=>{
-            const nkk=nkkIdx!==-1?dpsPrintText(r[nkkIdx]):'';
-            const newFamily=nkk && nkk!==lastNkk;
-            if(newFamily){familyNo++;alt=!alt;}
-            lastNkk=nkk||lastNkk;
-            const jk=jkIdx!==-1?dpsPrintGender(r[jkIdx]):''; if(jk==='L')laki++;else if(jk==='P')perempuan++;
-            const cls=(newFamily?' family-start':'')+(alt?' family-alt':'');
-            html+='<tr class="'+cls.trim()+'">';
-            html+='<td class="c-no" style="text-align:center">'+(i+1)+'</td>';
-            html+='<td class="c-nik" style="text-align:center">'+esc(nikIdx!==-1?dpsPrintNik(r[nikIdx]):'')+'</td>';
-            html+='<td class="c-nama">'+esc(namaIdx!==-1?r[namaIdx]:'')+'</td>';
-            html+='<td class="c-tempat">'+esc(tempatIdx!==-1?r[tempatIdx]:'')+'</td>';
-            html+='<td class="c-tgl" style="text-align:center">'+esc(tglIdx!==-1?dpsPrintDate(r[tglIdx]):'')+'</td>';
-            html+='<td class="c-umur" style="text-align:center">'+esc(umurIdx!==-1?r[umurIdx]:'')+'</td>';
-            html+='<td class="c-kawin" style="text-align:center">'+esc(kawinIdx!==-1?dpsPrintKawin(r[kawinIdx]):'')+'</td>';
-            html+='<td class="c-jk" style="text-align:center">'+esc(jk)+'</td>';
-            html+='<td class="c-alamat">'+esc(dpsPrintAddress(r,headers))+'</td><td class="c-ket"></td></tr>';
-        });
-        html+='</tbody></table>';
-        html+='<div class="dps-summary"><div>JUMLAH '+shortTitle+' LAKI-LAKI : <u>'+laki+'</u></div><div>JUMLAH '+shortTitle+' PEREMPUAN : <u>'+perempuan+'</u></div><div>JUMLAH TOTAL '+shortTitle+' : <u>'+rows.length+'</u></div></div>';
-        html+='<div class="dps-notes"><b>KETERANGAN :</b><br>B = Belum Kawin &nbsp;&nbsp; S = Sudah Kawin &nbsp;&nbsp; P = Pernah Kawin &nbsp;&nbsp; L = Laki-laki &nbsp;&nbsp; P = Perempuan</div>';
-        html+='<div class="dps-signature"><div>PANITIA PEMILIHAN KEPALA DESA</div><div class="dps-sign-grid">';
-        html+='<div>KETUA<div class="dps-sign-name">'+esc(committeeNames.ketua||'')+'</div></div>';
-        html+='<div>WAKIL KETUA<div class="dps-sign-name">'+esc(committeeNames.wakil||'')+'</div></div>';
-        html+='<div>SEKRETARIS<div class="dps-sign-name">'+esc(committeeNames.sekretaris||'')+'</div></div>';
-        html+='<div>ANGGOTA<div class="dps-sign-name">'+esc(committeeNames.anggota||'')+'</div></div></div></div></div>';
+        for(let page=0; page<totalPages; page++){
+            const offset=page*rowsPerPage;
+            const pageRows=rows.slice(offset, offset+rowsPerPage);
+            const isLastPage=page===totalPages-1;
+            html+='<section class="dps-page'+(isLastPage?' dps-last-page':'')+'">';
+            if(page===0){
+                html+='<div class="dps-first-page-title">'+title+'<br>PEMILIHAN KEPALA DESA TAHUN 2026</div>';
+                html+='<div class="dps-meta"><div><span>DESA</span><b>:</b><em>PAYO LEBAR</em><span>KECAMATAN</span><b>:</b><em>SINGKUT</em></div><div><span>KABUPATEN</span><b>:</b><em>SAROLANGUN</em><span>PROVINSI</span><b>:</b><em>JAMBI</em></div></div>';
+            }
+            html+='<table><thead>'+makeThead().replace('<thead>','').replace('</thead>','')+'</thead><tbody>'+makeRows(pageRows,offset)+'</tbody></table>';
+            if(!isLastPage && isDpt) html+=makeCandidateParaf();
+            if(isLastPage){
+                html+='<div class="dps-summary"><div>JUMLAH '+shortTitle+' LAKI-LAKI : <u>'+laki+'</u></div><div>JUMLAH '+shortTitle+' PEREMPUAN : <u>'+perempuan+'</u></div><div>JUMLAH TOTAL '+shortTitle+' : <u>'+rows.length+'</u></div></div>';
+                html+='<div class="dps-notes"><b>KETERANGAN :</b><br>B = Belum Kawin &nbsp;&nbsp; S = Sudah Kawin &nbsp;&nbsp; P = Pernah Kawin &nbsp;&nbsp; L = Laki-laki &nbsp;&nbsp; P = Perempuan</div>';
+                html+='<div class="dps-signature"><div>PANITIA PEMILIHAN KEPALA DESA</div><div class="dps-sign-grid">';
+                html+='<div>KETUA<div class="dps-sign-name">'+esc(committeeNames.ketua||'')+'</div></div>';
+                html+='<div>WAKIL KETUA<div class="dps-sign-name">'+esc(committeeNames.wakil||'')+'</div></div>';
+                html+='<div>SEKRETARIS<div class="dps-sign-name">'+esc(committeeNames.sekretaris||'')+'</div></div>';
+                html+='<div>ANGGOTA<div class="dps-sign-name">'+esc(committeeNames.anggota||'')+'</div></div></div></div>';
+            }
+            html+='</section>';
+        }
+        html+='</div>';
         return html;
     }
 
