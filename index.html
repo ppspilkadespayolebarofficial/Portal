@@ -296,6 +296,24 @@
             body.printing-dps #dpsPrintContainer .dps-meta span { grid-column: 1; }
             body.printing-dps #dpsPrintContainer .dps-meta b { grid-column: 2; text-align:center; }
             body.printing-dps #dpsPrintContainer .dps-meta em { grid-column: 3; font-style:normal; text-align:left; }
+
+            /* Perapian metadata cetak: Desa/Kecamatan tetap kiri,
+               Kabupaten/Provinsi rata kanan dengan titik dua presisi. */
+            body.printing-dps #dpsPrintContainer .dps-meta > div:nth-child(2) {
+                grid-template-columns: 1fr 4mm 31mm;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta > div:nth-child(2) span {
+                grid-column: 1;
+                text-align: right;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta > div:nth-child(2) b {
+                grid-column: 2;
+                text-align: center;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta > div:nth-child(2) em {
+                grid-column: 3;
+                text-align: left;
+            }
             body.printing-dps #dpsPrintContainer .dps-signature {
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
@@ -424,7 +442,7 @@
             body.printing-dps #dpsPrintContainer .c-umur { width:6%; text-align:center; }
             body.printing-dps #dpsPrintContainer .c-kawin { width:8%; text-align:center; }
             body.printing-dps #dpsPrintContainer .c-jk { width:6%; text-align:center; }
-            body.printing-dps #dpsPrintContainer .c-alamat { width:21%; }
+            body.printing-dps #dpsPrintContainer .c-alamat { width:17%; }
             body.printing-dps #dpsPrintContainer .c-ket { width:7%; }
             body.printing-dps #dpsPrintContainer .dps-summary {
                 display:grid; grid-template-columns:1fr 1fr 1fr; gap:8mm;
@@ -462,9 +480,8 @@
             }
             body.printing-dps #dpsPrintContainer .dpt-candidate-paraf {
                 display:grid; grid-template-columns:repeat(5,1fr); gap:5mm;
-                margin-top:2mm; font-size:8.5px; font-weight:700; text-align:center;
+                margin-top:3.5mm; font-size:8.5px; font-weight:700; text-align:center;
                 break-inside:avoid; page-break-inside:avoid;
-                margin-top:auto;
             }
             body.printing-dps #dpsPrintContainer .dpt-candidate-paraf .paraf-box {
                 border:1px solid #000; min-height:8mm; padding:1mm 1mm 0;
@@ -472,7 +489,7 @@
             body.printing-dps #dpsPrintContainer .dpt-candidate-paraf .paraf-space { height:5mm; }
             body.printing-dps #dpsPrintContainer .dpt-candidate-paraf-label { font-size:8px; margin-bottom:1mm; }
             body.printing-dps #dpsPrintContainer .c-ket { text-align:center; }
-            body.printing-dps #dpsPrintContainer .c-alamat { width:19%; }
+            body.printing-dps #dpsPrintContainer .c-alamat { width:17%; }
             body.printing-dps #dpsPrintContainer .c-ket { width:7%; text-align:center; }
 
             body.printing-dps #tableScrollContainer,
