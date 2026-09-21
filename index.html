@@ -296,6 +296,24 @@
             body.printing-dps #dpsPrintContainer .dps-meta span { grid-column: 1; }
             body.printing-dps #dpsPrintContainer .dps-meta b { grid-column: 2; text-align:center; }
             body.printing-dps #dpsPrintContainer .dps-meta em { grid-column: 3; font-style:normal; text-align:left; }
+
+            /* Perapian metadata cetak: Desa/Kecamatan tetap kiri,
+               Kabupaten/Provinsi rata kanan dengan titik dua presisi. */
+            body.printing-dps #dpsPrintContainer .dps-meta > div:nth-child(2) {
+                grid-template-columns: 1fr 4mm 31mm;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta > div:nth-child(2) span {
+                grid-column: 1;
+                text-align: right;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta > div:nth-child(2) b {
+                grid-column: 2;
+                text-align: center;
+            }
+            body.printing-dps #dpsPrintContainer .dps-meta > div:nth-child(2) em {
+                grid-column: 3;
+                text-align: left;
+            }
             body.printing-dps #dpsPrintContainer .dps-signature {
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
@@ -424,7 +442,7 @@
             body.printing-dps #dpsPrintContainer .c-umur { width:6%; text-align:center; }
             body.printing-dps #dpsPrintContainer .c-kawin { width:8%; text-align:center; }
             body.printing-dps #dpsPrintContainer .c-jk { width:6%; text-align:center; }
-            body.printing-dps #dpsPrintContainer .c-alamat { width:21%; }
+            body.printing-dps #dpsPrintContainer .c-alamat { width:17%; }
             body.printing-dps #dpsPrintContainer .c-ket { width:7%; }
             body.printing-dps #dpsPrintContainer .dps-summary {
                 display:grid; grid-template-columns:1fr 1fr 1fr; gap:8mm;
@@ -461,10 +479,9 @@
                 page-break-after: auto;
             }
             body.printing-dps #dpsPrintContainer .dpt-candidate-paraf {
-                display:grid; grid-template-columns:repeat(5,1fr); column-gap:5mm; row-gap:0;
-                margin-top:2mm; font-size:8.5px; font-weight:700; text-align:center;
+                display:grid; grid-template-columns:repeat(5,1fr); gap:5mm;
+                margin-top:3.5mm; font-size:8.5px; font-weight:700; text-align:center;
                 break-inside:avoid; page-break-inside:avoid;
-                margin-top:auto;
             }
             body.printing-dps #dpsPrintContainer .dpt-candidate-paraf .paraf-box {
                 border:1px solid #000; min-height:8mm; padding:1mm 1mm 0;
@@ -472,7 +489,7 @@
             body.printing-dps #dpsPrintContainer .dpt-candidate-paraf .paraf-space { height:5mm; }
             body.printing-dps #dpsPrintContainer .dpt-candidate-paraf-label { font-size:8px; margin-bottom:1mm; }
             body.printing-dps #dpsPrintContainer .c-ket { text-align:center; }
-            body.printing-dps #dpsPrintContainer .c-alamat { width:19%; }
+            body.printing-dps #dpsPrintContainer .c-alamat { width:17%; }
             body.printing-dps #dpsPrintContainer .c-ket { width:7%; text-align:center; }
 
             body.printing-dps #tableScrollContainer,
@@ -617,7 +634,7 @@
                         </div>
                     </div>
                     <div class="col-md-auto">
-                        <span class="badge bg-dark text-warning border border-warning px-3 py-2 fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">PERHATIAN: DPT SUDAH DITETAPKAN, DAN TIDAK BISA MENAMBAH DPTAM (BARU)</span>
+                        <span class="badge bg-dark text-warning border border-warning px-3 py-2 fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">HIMBAUAN: SEGERA MELAPOR JIKA BELUM MASUK DPS/DPT</span>
                     </div>
                 </div>
             </div>
@@ -2666,11 +2683,10 @@
         const welcomeModal = bootstrap.Modal.getInstance(welcomeModalEl);
         welcomeModal.hide();
         
-        // Tampilkan login segera agar tidak terasa lambat.
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
             loginModal.show();
-        });
+        }, 300);
     }
 
     function showAdminTransition(title, subtitle, iconClass) {
@@ -2707,12 +2723,8 @@
                     bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
                     document.getElementById('adminPassword').value = '';
                     updateAuthUI();
-                    // Render seperlunya tanpa menahan layar dengan animasi 650 ms.
-                    requestAnimationFrame(() => {
-                        renderTablePage();
-                        hideAdminTransition();
-                        showToast("Login Berhasil! Sesi Admin aktif.", "bg-success");
-                    });
+                    renderTablePage();
+                    setTimeout(() => { hideAdminTransition(); showToast("Login Berhasil! Sesi Admin aktif.", "bg-success"); }, 650);
                 } else {
                     hideAdminTransition();
                     alert("Password salah!");
@@ -2735,7 +2747,7 @@
 
         updateAuthUI();
         renderTablePage();
-        if (sendToServer) requestAnimationFrame(() => { hideAdminTransition(); showToast("Berhasil Logout.", "bg-secondary"); });
+        if (sendToServer) setTimeout(() => { hideAdminTransition(); showToast("Berhasil Logout.", "bg-secondary"); }, 650);
 
         if (sendToServer && oldToken) {
             fetch(WEB_APP_URL, {
@@ -2919,38 +2931,6 @@
         rows=rows.filter(r=>r && r.some(v=>dpsPrintText(v)!==''));
 
         const isDptam=activeSheet==='DPTAM (TAMBAHAN)', isDpt=activeSheet==='DPT (TETAP)';
-
-        // Nomor urut cetak DPT harus menyambung antar-TPS.
-        // Contoh: TPS 1 berakhir di 2113, maka TPS 2 dimulai dari 2114.
-        // Nomor dihitung dari seluruh data yang memenuhi filter selain TPS,
-        // sehingga memilih filter TPS 2 pun tetap mendapatkan nomor globalnya.
-        const dptGlobalNo = new Map();
-        if (isDpt && tpsIdx !== -1) {
-            let numberingRows = currentRawData.slice(1).filter(r => r && r.some(v => dpsPrintText(v) !== ''));
-            if(activeRt && rtIdx!==-1) numberingRows=numberingRows.filter(r=>normRt(r[rtIdx])===normRt(activeRt));
-            if(activeKeyword){const q=activeKeyword.toLowerCase();numberingRows=numberingRows.filter(r=>r.some(v=>dpsPrintText(v).toLowerCase().includes(q)));}
-            if(activeCoklit && coklitIdx!==-1) numberingRows=numberingRows.filter(r=>dpsPrintText(r[coklitIdx]).toUpperCase()===activeCoklit.toUpperCase());
-            if(activeDusun && dusunIdx!==-1) numberingRows=numberingRows.filter(r=>dpsPrintText(r[dusunIdx])===activeDusun);
-            if(activeJk && jkIdx!==-1) numberingRows=numberingRows.filter(r=>normJk(r[jkIdx])===activeJk);
-
-            const tpsNumber=v=>{
-                const m=dpsPrintText(v).match(/\d+/);
-                return m ? parseInt(m[0],10) : Number.MAX_SAFE_INTEGER;
-            };
-            const tpsGroups=new Map();
-            numberingRows.forEach(r=>{
-                const key=dpsPrintText(r[tpsIdx]).replace(/^TPS\s*/i,'').trim() || '__NO_TPS__';
-                if(!tpsGroups.has(key)) tpsGroups.set(key,[]);
-                tpsGroups.get(key).push(r);
-            });
-            const orderedGroups=[...tpsGroups.entries()].sort((a,b)=>{
-                const na=tpsNumber(a[0]), nb=tpsNumber(b[0]);
-                if(na!==nb) return na-nb;
-                return a[0].localeCompare(b[0],'id',{numeric:true});
-            });
-            let nomorGlobal=1;
-            orderedGroups.forEach(([,group])=>group.forEach(r=>dptGlobalNo.set(r,nomorGlobal++)));
-        }
         const title=isDpt?'DAFTAR PEMILIH TETAP (DPT)':isDptam?'DAFTAR PEMILIH TAMBAHAN (DPTAM)':'DAFTAR PEMILIH SEMENTARA (DPS)';
         const shortTitle=isDpt?'DPT':isDptam?'DPTAM':'DPS';
         const esc=v=>String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -2975,8 +2955,7 @@
                 if(jk==='L')laki++; else if(jk==='P')perempuan++;
                 const cls=(newFamily?' family-start':'')+(alt?' family-alt':'');
                 out+='<tr class="'+cls.trim()+'">';
-                const nomorCetak = isDpt && dptGlobalNo.has(r) ? dptGlobalNo.get(r) : (i+1);
-                out+='<td class="c-no" style="text-align:center">'+nomorCetak+'</td>';
+                out+='<td class="c-no" style="text-align:center">'+(i+1)+'</td>';
                 out+='<td class="c-nik" style="text-align:center">'+esc(nikIdx!==-1?dpsPrintNik(r[nikIdx]):'')+'</td>';
                 out+='<td class="c-nama">'+esc(namaIdx!==-1?r[namaIdx]:'')+'</td>';
                 out+='<td class="c-tempat">'+esc(tempatIdx!==-1?r[tempatIdx]:'')+'</td>';
