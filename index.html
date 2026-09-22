@@ -1028,7 +1028,16 @@
     const noFilterSheets = ['INPUT SUARA', 'PROFIL CALON KADES', 'TAHAPAN PILKADES', 'PENGADUAN DAN LAYANAN'];
 
     function isPublicSummarySheet(sheetName = activeSheet) {
-        return !isAdmin && (sheetName === 'DPT AWAL (PMD)' || sheetName === 'DPS (SEMENTARA)');
+        // Mode publik: sembunyikan tabel data untuk seluruh menu daftar pemilih,
+        // sama seperti DPT AWAL (PMD). Menu tetap ada dan admin tetap dapat melihat data.
+        const publicSummarySheets = [
+            'DPT AWAL (PMD)',
+            'DPS',
+            'DPS (SEMENTARA)',
+            'DPTAM (TAMBAHAN)',
+            'DPT (TETAP)'
+        ];
+        return !isAdmin && publicSummarySheets.includes(sheetName);
     }
 
     function applyPublicSummaryMode() {
