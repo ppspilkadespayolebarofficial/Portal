@@ -1484,9 +1484,10 @@
                 if (filterKeywordWrapper) filterKeywordWrapper.classList.remove('d-none');
                 if (filterCoklitEl) filterCoklitEl.classList.remove('d-none');
                 if (filterRtEl) filterRtEl.classList.remove('d-none');
-                // Filter TPS khusus Admin pada DPT (TETAP). Menu lain tidak berubah.
+                // Filter TPS DPT (TETAP) disamakan untuk Publik dan Admin.
+                // Menu/fitur lain tetap tidak berubah.
                 if (filterTpsEl) {
-                    if (isAdmin && sheetName === 'DPT (TETAP)') filterTpsEl.classList.remove('d-none');
+                    if (sheetName === 'DPT (TETAP)') filterTpsEl.classList.remove('d-none');
                     else filterTpsEl.classList.add('d-none');
                 }
                 if (filterDusunEl) filterDusunEl.classList.remove('d-none');
@@ -1591,7 +1592,9 @@
         const el = document.getElementById('filterTps');
         if (!el) return;
         el.innerHTML = '<option value="">-- Semua TPS --</option>';
-        if (!isAdmin || activeSheet !== 'DPT (TETAP)') {
+        // Filter TPS pada DPT (TETAP) tersedia untuk Publik dan Admin.
+        // Menu/fitur lain tetap tidak berubah.
+        if (activeSheet !== 'DPT (TETAP)') {
             el.classList.add('d-none');
             return;
         }
