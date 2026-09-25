@@ -542,7 +542,216 @@
 #menuBackdrop{display:none;position:fixed;inset:0;z-index:2999;background:rgba(0,0,0,.28)}
 #menuBackdrop.show{display:block}
 .chart-container{height:210px!important;min-height:210px!important}
-</style></head>
+</style>
+<style id="modernMarketplaceUI">
+/* ===== Modern Marketplace / Super-App UI refresh ===== */
+:root{
+  --app-primary:#8b1531;
+  --app-primary-2:#b91c3c;
+  --app-gold:#fbbf24;
+  --app-bg:#f6f7fb;
+  --app-text:#172033;
+  --app-muted:#64748b;
+  --app-card:rgba(255,255,255,.94);
+  --app-shadow:0 12px 35px rgba(27,31,49,.09);
+}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(circle at 8% 0%,rgba(185,28,60,.08),transparent 28%),
+    radial-gradient(circle at 92% 10%,rgba(251,191,36,.10),transparent 24%),
+    var(--app-bg);
+  color:var(--app-text);
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background-image:linear-gradient(rgba(139,21,49,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(139,21,49,.018) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+.container-fluid{padding-left:0;padding-right:0}
+main{
+  padding-top:76px!important;
+  transition:padding .35s ease,transform .35s ease;
+}
+.portal-header{
+  border-radius:26px!important;
+  padding:28px 30px!important;
+  box-shadow:0 18px 45px rgba(88,12,31,.20)!important;
+  animation:appRise .55s cubic-bezier(.2,.8,.2,1) both;
+}
+.portal-header h2{font-size:clamp(1.35rem,3vw,2.1rem)!important}
+.portal-header .btn{
+  border-radius:14px!important;
+  min-height:42px;
+  transition:transform .22s ease,box-shadow .22s ease;
+}
+.portal-header .btn:hover{transform:translateY(-2px);box-shadow:0 9px 22px rgba(0,0,0,.16)!important}
+.card-custom{
+  border-radius:22px!important;
+  box-shadow:var(--app-shadow)!important;
+  background:var(--app-card)!important;
+  backdrop-filter:blur(12px);
+  transition:transform .25s ease,box-shadow .25s ease;
+}
+.card-custom:hover{box-shadow:0 18px 42px rgba(27,31,49,.12)!important}
+.stat-card{
+  border-radius:18px!important;
+  min-height:108px;
+  transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s ease;
+}
+.stat-card:hover{transform:translateY(-5px) scale(1.01)!important}
+#filterAndActionContainer{
+  position:sticky;top:68px;z-index:100;
+  padding:12px 14px!important;
+  background:rgba(246,247,251,.88);
+  backdrop-filter:blur(16px);
+  border-radius:18px;
+}
+#filterControlsBox>*{
+  border-radius:13px!important;
+}
+#filterKeywordWrapper{
+  border-radius:13px;overflow:hidden;
+}
+#filterKeyword,#filterCoklit,#filterRt,#filterTps,#filterDusun,#filterJenisKelamin,#rowsPerPageSelect{
+  border-radius:12px!important;
+  border-color:#e2e8f0!important;
+  min-height:38px;
+}
+#filterKeyword:focus,#filterCoklit:focus,#filterRt:focus,#filterTps:focus,#filterDusun:focus,#filterJenisKelamin:focus{
+  border-color:#b91c3c!important;
+  box-shadow:0 0 0 .2rem rgba(185,28,60,.10)!important;
+}
+#dataTable{border-radius:16px;overflow:hidden}
+.sheet-table th{font-size:.78rem!important}
+.sheet-table td{transition:background .18s ease,transform .18s ease}
+.sheet-table tbody tr:hover td{background:#fff1f4!important}
+.pagination .page-link{
+  border-radius:10px!important;margin:0 2px;border:0;
+  color:var(--app-primary);font-weight:700;
+}
+.pagination .active .page-link{background:var(--app-primary)!important;color:#fff}
+.modal-content{
+  border-radius:24px!important;
+  box-shadow:0 25px 80px rgba(15,23,42,.25)!important;
+  animation:modalPop .28s cubic-bezier(.2,.8,.2,1);
+}
+.toast{border-radius:15px!important;box-shadow:0 15px 40px rgba(15,23,42,.18)}
+/* Floating navigation drawer: all existing menu items remain available */
+#sidebar{
+  width:276px!important;
+  max-width:88vw!important;
+  border:0!important;
+  border-radius:0 26px 26px 0;
+  background:linear-gradient(180deg,#5b0b21 0%,#300611 100%)!important;
+  box-shadow:18px 0 55px rgba(30,5,16,.30)!important;
+  overflow-x:hidden;
+}
+#sidebar .brand-box{padding:28px 18px!important;background:rgba(255,255,255,.06)!important}
+#sidebar .nav-link{
+  border-radius:14px!important;
+  padding:12px 15px!important;
+  margin:5px 12px 5px 16px!important;
+  transition:transform .2s ease,background .2s ease,box-shadow .2s ease!important;
+}
+#sidebar .nav-link:hover{transform:translateX(5px)!important;box-shadow:0 8px 20px rgba(0,0,0,.14)}
+#sidebar .nav-link.active{box-shadow:0 8px 22px rgba(185,28,60,.28)!important}
+#sidebar .menu-category-header{
+  border-radius:14px!important;margin:7px 10px!important;padding:12px 14px!important;
+}
+#menuToggleButton{
+  top:16px!important;left:16px!important;
+  width:48px;height:48px;padding:0!important;
+  border-radius:16px!important;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0;backdrop-filter:blur(10px);
+  transition:transform .2s ease,box-shadow .2s ease;
+}
+#menuToggleButton i{font-size:18px!important;margin:0!important}
+#menuToggleButton:hover{transform:translateY(-2px) scale(1.03)}
+#menuBackdrop{backdrop-filter:blur(3px)}
+/* Centered super-app quick menu */
+#superAppQuickMenu{
+  display:grid;grid-template-columns:repeat(6,minmax(70px,1fr));gap:12px;
+  margin:0 0 22px;padding:12px;
+  animation:appRise .65s .05s both;
+}
+.super-app-item{
+  border:1px solid rgba(139,21,49,.08);
+  background:rgba(255,255,255,.92);
+  min-height:86px;border-radius:20px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:7px;color:#334155;text-decoration:none;cursor:pointer;
+  box-shadow:0 8px 25px rgba(15,23,42,.06);
+  transition:transform .22s ease,box-shadow .22s ease,background .22s ease;
+  font-size:.72rem;font-weight:800;text-align:center;
+}
+.super-app-item i{
+  width:40px;height:40px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;background:linear-gradient(135deg,#8b1531,#b91c3c);
+  box-shadow:0 7px 18px rgba(139,21,49,.22);
+  font-size:17px;
+}
+.super-app-item:hover{transform:translateY(-5px);box-shadow:0 16px 32px rgba(15,23,42,.12);color:#8b1531}
+.super-app-item:active{transform:scale(.96)}
+@media(max-width:900px){
+  #superAppQuickMenu{grid-template-columns:repeat(3,1fr);gap:10px}
+  #filterAndActionContainer{position:relative;top:auto}
+}
+@media(max-width:576px){
+  main{padding:70px 10px 88px!important}
+  .portal-header{padding:22px 18px!important;border-radius:22px!important}
+  .portal-header .row{gap:10px}
+  #superAppQuickMenu{
+    grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;
+    margin-bottom:14px;
+  }
+  .super-app-item{min-height:76px;border-radius:17px;font-size:.63rem}
+  .super-app-item i{width:34px;height:34px;border-radius:12px;font-size:14px}
+  #filterAndActionContainer{padding:10px!important;border-radius:16px}
+  #filterControlsBox{width:100%}
+  #filterControlsBox>*{width:100%!important}
+  #adminActionButtons{width:100%}
+  #adminActionButtons .btn{flex:1}
+  .chart-section-box{padding:12px!important}
+  .chart-container{height:205px!important}
+}
+/* Mobile bottom dock, does not remove drawer menu */
+#mobileAppDock{
+  display:none;
+}
+@media(max-width:576px){
+  #mobileAppDock{
+    position:fixed;display:flex;left:10px;right:10px;bottom:10px;z-index:2500;
+    padding:8px;background:rgba(255,255,255,.88);backdrop-filter:blur(18px);
+    border:1px solid rgba(139,21,49,.10);border-radius:22px;
+    box-shadow:0 15px 40px rgba(15,23,42,.16);
+    justify-content:space-around;
+  }
+  #mobileAppDock button{
+    border:0;background:transparent;color:#64748b;font-size:.63rem;font-weight:800;
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 8px;
+  }
+  #mobileAppDock i{font-size:18px;color:#8b1531}
+}
+/* Smooth content transitions */
+.app-page-transition{animation:appPage .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes appRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes appPage{from{opacity:.25;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes modalPop{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+}
+</style>
+
+
+<style id="menuRealcountFix">
+#superAppQuickMenu{display:none!important}
+body.realcount-active #toggleChartBtn{display:none!important}
+body.realcount-active #directChartSection{display:none!important}
+</style>
+</head>
 <body><button id="menuToggleButton" type="button" aria-label="Tampilkan menu" aria-expanded="false" onclick="toggleHiddenMenu()"><i class="fas fa-bars me-1"></i> MENU</button><div id="menuBackdrop" onclick="toggleHiddenMenu(false)"></div>
 
 <div class="container-fluid">
@@ -634,10 +843,12 @@
                         </div>
                     </div>
                     <div class="col-md-auto">
-                        <span class="badge bg-dark text-warning border border-warning px-3 py-2 fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">Ayo Datang ke TPS Pada Tanggal 20 Oktober 2026 !!! </span>
+                        <span class="badge bg-dark text-warning border border-warning px-3 py-2 fw-bold" style="font-size: 0.85rem; letter-spacing: 0.5px;">Ayo Datang ke TPS Pada Tanggal 29 Oktober 2026 !!! </span>
                     </div>
                 </div>
             </div>
+
+            <!-- Menu cepat kartu di tengah dihapus agar tampilan tidak penuh. Seluruh menu tetap tersedia melalui sidebar. -->
 
             <!-- Panel Akumulasi & Grafik -->
             <div class="card card-custom card-custom-rekap p-4 mb-3 chart-section-box no-print" id="directChartSection">
@@ -703,7 +914,7 @@
                     <div class="d-flex gap-2 align-items-center flex-wrap" id="filterControlsBox">
                         <div class="input-group input-group-sm shadow-sm" style="width: 200px;" id="filterKeywordWrapper">
                             <span class="input-group-text bg-light text-secondary"><i class="fas fa-search"></i></span>
-                            <input type="text" id="filterKeyword" class="form-control" placeholder="Cari NKK / NIK / Nama..." oninput="applyFilters()">
+                            <input type="text" id="filterKeyword" class="form-control" placeholder="Cari Nama / NKK / NIK..." oninput="applyFilters()">
                         </div>
 
                         <select id="filterCoklit" class="form-select form-select-sm fw-semibold shadow-sm" style="width: 175px;" onchange="applyFilters()">
@@ -1409,6 +1620,10 @@
             generateCustomChartsAndAccumulation();
         }
 
+        if (sheetName === 'PROFIL CALON KADES' && typeof window.__rcLoadCandidateProfile === 'function') {
+            window.__rcLoadCandidateProfile();
+        }
+
         if (sourceLabel) {
             console.log(`Data ${sheetName} dimuat dari ${sourceLabel}.`);
         }
@@ -1464,15 +1679,23 @@
         const filterTpsEl = document.getElementById('filterTps');
         const filterDusunEl = document.getElementById('filterDusun');
         const filterJkEl = document.getElementById('filterJenisKelamin');
+        const rowsPerPageSelect = document.getElementById('rowsPerPageSelect');
+        if (rowsPerPageSelect && rowsPerPageSelect.parentElement) rowsPerPageSelect.parentElement.classList.remove('d-none');
 
+        const isRealCountMenu = sheetName === 'INPUT SUARA';
+        document.body.classList.toggle('realcount-active', isRealCountMenu);
+
+        const isCandidateProfile = sheetName === 'PROFIL CALON KADES';
         if (isCommittee) {
             if (filterControlsBox) filterControlsBox.classList.add('d-none');
             if (toggleChartBtn) toggleChartBtn.classList.add('d-none');
             if (directChartSection) directChartSection.classList.add('d-none');
         } else {
-            if (filterControlsBox) filterControlsBox.classList.remove('d-none');
-            if (toggleChartBtn) toggleChartBtn.classList.remove('d-none');
-            if (directChartSection) directChartSection.classList.remove('d-none');
+            if (filterControlsBox) filterControlsBox.classList.toggle('d-none', isCandidateProfile ? true : false);
+            // Grafik rekap tetap tampil pada menu data biasa. Live dan Profil Calon
+            // memiliki tampilan khusus sehingga tidak menampilkan grafik/rekap umum.
+            if (toggleChartBtn) toggleChartBtn.classList.toggle('d-none', isRealCountMenu || isCandidateProfile);
+            if (directChartSection) directChartSection.classList.toggle('d-none', isRealCountMenu || isCandidateProfile);
             if (isNoFilter) {
                 if (filterKeywordWrapper) filterKeywordWrapper.classList.add('d-none');
                 if (filterCoklitEl) filterCoklitEl.classList.add('d-none');
@@ -1659,6 +1882,11 @@
         const dusunIdx = headers.findIndex(h => upper(h).includes('DUSUN') || upper(h).includes('LINGKUNGAN'));
         const jkIdx = headers.findIndex(h => upper(h).includes('JENIS KELAMIN') || upper(h) === 'JK' || upper(h) === 'L/P');
         const nkkIdx = headers.findIndex(h => upper(h).includes('NKK') || upper(h).includes('NO KK'));
+        const nikIdx = headers.findIndex(h => {
+            const u = upper(h).replace(/[\s._-]/g, '');
+            return u === 'NIK' || u.includes('NIK');
+        });
+        const namaIdx = headers.findIndex(h => upper(h).includes('NAMA'));
 
         const normRt = v => String(v ?? '').trim().replace(/^RT\.?\s*/i,'');
         const normJk = v => {
@@ -1666,7 +1894,13 @@
             return (x==='L'||x.includes('LAKI')) ? 'L' : ((x==='P'||x.includes('PEREM')) ? 'P' : x);
         };
         const matchedRows = rows.filter(row => {
-            const matchKeyword = !keyword || row.some(cell => String(cell ?? '').toLowerCase().includes(keyword));
+            const matchKeyword = !keyword || (
+                activeSheet === 'DPT (TETAP)'
+                    ? [namaIdx, nkkIdx, nikIdx].some(idx =>
+                        idx !== -1 && String(row[idx] ?? '').toLowerCase().includes(keyword)
+                      )
+                    : row.some(cell => String(cell ?? '').toLowerCase().includes(keyword))
+            );
             const matchCoklit = !selectedCoklit || (coklitIdx !== -1 && String(row[coklitIdx] ?? '').trim() === selectedCoklit);
             const matchRt = !selectedRt || (rtIdx !== -1 && normRt(row[rtIdx]) === normRt(selectedRt));
             const matchTps = !selectedTps || (tpsIdx !== -1 && String(row[tpsIdx] ?? '').trim().replace(/^TPS\s*/i,'') === String(selectedTps).trim().replace(/^TPS\s*/i,''));
@@ -2329,6 +2563,11 @@
     }
 
     function toggleChartSection() {
+        if (activeSheet !== 'INPUT SUARA') {
+            const section = document.getElementById('directChartSection');
+            if (section) section.classList.add('d-none');
+            return;
+        }
         if (isPublicSummarySheet()) {
             const section = document.getElementById('directChartSection');
             if (section) section.classList.remove('d-none');
@@ -3081,7 +3320,25 @@
 
 function toggleHiddenMenu(force){const sidebar=document.getElementById('sidebar'),btn=document.getElementById('menuToggleButton'),back=document.getElementById('menuBackdrop');if(!sidebar)return;const open=typeof force==='boolean'?force:!sidebar.classList.contains('menu-visible');sidebar.classList.toggle('menu-visible',open);if(back)back.classList.toggle('show',open);if(btn){btn.setAttribute('aria-expanded',String(open));btn.innerHTML=open?'<i class="fas fa-times me-1"></i> TUTUP MENU':'<i class="fas fa-bars me-1"></i> MENU';}}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleHiddenMenu(false);});
+document.addEventListener('click',function(e){
+  const nav=e.target.closest('.sidebar .nav-link');
+  if(nav && !String(nav.getAttribute('onclick')||'').includes("loadSheetData('INPUT SUARA'")){
+    document.body.classList.remove('realcount-active');
+    const bridge=document.getElementById('realCountBridge');
+    if(bridge){bridge.style.display='none';}
+  }
+});
 </script>
+
+
+<!-- Mobile super-app dock; drawer menu remains the complete menu -->
+<div id="mobileAppDock" class="no-print">
+  <button type="button" onclick="loadSheetData('INPUT SUARA',this)"><i class="fas fa-chart-line"></i><span>Live</span></button>
+  <button type="button" onclick="loadSheetData('DPS',this)"><i class="fas fa-users"></i><span>DPS</span></button>
+  <button type="button" onclick="toggleHiddenMenu(true)"><i class="fas fa-grip-horizontal"></i><span>Menu</span></button>
+  <button type="button" onclick="toggleChartSection()"><i class="fas fa-chart-bar"></i><span>Grafik</span></button>
+  <button type="button" onclick="refreshData()"><i class="fas fa-sync-alt"></i><span>Refresh</span></button>
+</div>
 
 <div id="adminTransitionOverlay" aria-hidden="true">
   <div class="admin-transition-card">
@@ -3091,5 +3348,272 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')toggleHiddenMenu(fal
     <div class="admin-slides"></div>
   </div>
 </div>
+
+<script id="modernUIEnhancements">
+(function(){
+  function animateMain(){
+    const main=document.querySelector('main');
+    if(!main)return;
+    main.classList.remove('app-page-transition');
+    void main.offsetWidth;
+    main.classList.add('app-page-transition');
+  }
+  document.addEventListener('click',function(e){
+    const el=e.target.closest('.nav-link,.super-app-item,#mobileAppDock button');
+    if(el) setTimeout(animateMain,30);
+  });
+  document.addEventListener('shown.bs.modal',function(e){
+    if(e.target && e.target.classList.contains('modal')){
+      const content=e.target.querySelector('.modal-content');
+      if(content){content.style.animation='none';void content.offsetWidth;content.style.animation='modalPop .28s cubic-bezier(.2,.8,.2,1)';}
+    }
+  });
+})();
+</script>
+
+
+<!-- ============================================================
+     REAL COUNT BRIDGE - DATABASE (1) -> SPREADSHEET REAL COUNT
+     Hanya mengganti mesin MENU REAL COUNT. Menu lain tidak disentuh.
+     ============================================================ -->
+<style id="realCountBridgeStyle">
+#realCountBridge{font-family:inherit}
+#realCountBridge .rc-head{background:linear-gradient(135deg,#0f172a 0%,#1d4ed8 48%,#06b6d4 100%);color:#fff;border-radius:22px;padding:22px 24px;margin-bottom:18px;box-shadow:0 14px 35px rgba(30,64,175,.20);position:relative;overflow:hidden}
+#realCountBridge .rc-head:after{content:'';position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.12)}
+#realCountBridge .rc-title{position:relative;z-index:1}
+#realCountBridge .rc-title{font-weight:900;letter-spacing:.3px;text-transform:uppercase;margin:0}
+#realCountBridge .rc-sub{opacity:.92;font-size:.84rem;margin-top:5px;position:relative;z-index:1}
+#realCountBridge .rc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+#realCountBridge .rc-card{border:0;border-radius:18px;background:#fff;padding:16px;box-shadow:0 8px 24px rgba(15,23,42,.08);position:relative;overflow:hidden}
+#realCountBridge .rc-label{font-size:.72rem;font-weight:800;color:#64748b;text-transform:uppercase}
+#realCountBridge .rc-value{font-size:1.65rem;font-weight:900;color:#0f172a;margin-top:3px} #realCountBridge .rc-card:nth-child(1){border-top:4px solid #2563eb} #realCountBridge .rc-card:nth-child(2){border-top:4px solid #06b6d4} #realCountBridge .rc-card:nth-child(3){border-top:4px solid #10b981} #realCountBridge .rc-card:nth-child(4){border-top:4px solid #f59e0b}
+#realCountBridge .rc-table-wrap{overflow:auto;border:1px solid #e5e7eb;border-radius:16px;background:#fff}
+#realCountBridge table{width:100%;border-collapse:collapse;min-width:720px}
+#realCountBridge th{background:linear-gradient(90deg,#172554,#1d4ed8);color:#fff;padding:13px 14px;font-size:.76rem;text-transform:uppercase;text-align:center}
+#realCountBridge td{padding:11px 14px;border-bottom:1px solid #e5e7eb;font-weight:700}
+#realCountBridge td:not(:first-child){text-align:center}
+#realCountBridge .rc-total{background:#eff6ff;font-weight:900;color:#1d4ed8}
+#realCountBridge .rc-tps{font-size:.7rem;color:#64748b;display:block;font-weight:600;text-transform:none;margin-top:2px}
+#realCountBridge .rc-admin{margin-top:16px;border:1px solid #dbeafe;border-radius:18px;padding:18px;background:linear-gradient(135deg,#f8fafc,#eff6ff)}
+#realCountBridge .rc-admin h6{font-weight:900;color:#1e3a8a}
+#realCountBridge .rc-login{display:flex;gap:8px;max-width:520px}
+#realCountBridge .rc-login input{flex:1}
+#realCountBridge .rc-input-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#realCountBridge .rc-tps-box{border:1px solid #e5e7eb;border-radius:14px;padding:14px}
+#realCountBridge .rc-tps-box h6{margin:0 0 10px;font-weight:900}
+#realCountBridge .rc-field{margin-bottom:9px}
+#realCountBridge .rc-field label{font-size:.75rem;font-weight:800;color:#475569;margin-bottom:3px}
+#realCountBridge .rc-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+#realCountBridge .rc-photo{width:42px;height:42px;border-radius:50%;object-fit:cover;border:2px solid #fee2e2;background:#f8fafc}
+#realCountBridge .rc-candidate{display:flex;align-items:center;gap:9px;text-align:left}
+#printableArea .rc-profile-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;padding:4px}
+#printableArea .rc-profile-card{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid #e5e7eb;border-radius:18px;background:#fff;padding:18px 12px;box-shadow:0 5px 18px rgba(0,0,0,.06);min-height:245px;justify-content:center}
+#printableArea .rc-profile-number{position:absolute;top:10px;left:10px;width:32px;height:32px;border-radius:50%;background:#991b1b;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900}
+#printableArea .rc-profile-photo{width:150px;height:180px;object-fit:cover;border-radius:12px;border:2px solid #fee2e2;background:#f8fafc;margin-bottom:12px}
+#printableArea .rc-profile-placeholder{display:flex;align-items:center;justify-content:center;font-size:58px;color:#94a3b8}
+#printableArea .rc-profile-name{font-size:1.05rem;font-weight:900;color:#172554;text-transform:uppercase;line-height:1.25}
+#printableArea .rc-profile-vision,#printableArea .rc-profile-mission{width:100%;text-align:left;margin-top:10px;padding:11px 13px;border-radius:12px;background:#f8fafc;color:#334155;font-size:.82rem;line-height:1.5}
+#printableArea .rc-profile-vision strong,#printableArea .rc-profile-mission strong{display:block;color:#1d4ed8;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+#printableArea .rc-profile-mission{background:#ecfeff}
+#realCountBridge .rc-num{font-weight:900;color:#991b1b;min-width:24px}
+#realCountBridge .rc-status{font-size:.75rem;font-weight:800;margin-top:7px}
+@media(max-width:900px){#realCountBridge .rc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rc-input-grid{grid-template-columns:1fr!important}}
+@media(max-width:520px){#realCountBridge .rc-grid{grid-template-columns:1fr}.rc-login{flex-direction:column}.rc-head{padding:16px}}
+</style>
+<script id="realCountBridgeScript">
+(function(){
+  const RC_URL='https://script.google.com/macros/s/AKfycbzheyKohPbO2SatKV80UDI8HFzBxFKM68tOIa9P-Cf-jvNweFp_ePwbXOCWiSTTGaFxiQ/exec';
+  const RC_DPT1=2113, RC_DPT2=2072;
+  let rcData={candidates:[],tps1:{},tps2:{}};
+  let rcAdminPin='';
+  let rcLoaded=false;
+
+  function escRC(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function nRC(v){const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.floor(n)):0;}
+  function fmtRC(v){return nRC(v).toLocaleString('id-ID');}
+  function rcSum(t){return nRC(t.c1)+nRC(t.c2)+nRC(t.c3)+nRC(t.c4)+nRC(t.c5)+nRC(t.invalid);}
+  function rcSafePhoto(v){
+    const s=String(v||'').trim();
+    if(!s)return '';
+    const m=s.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    return m?'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w200':s;
+  }
+  function rcSetStandardUi(){
+    const ids=['filterAndActionContainer','paginationContainer','tableScrollContainer','printableArea'];
+    const fa=document.getElementById('filterAndActionContainer'); if(fa) fa.classList.add('d-none');
+    const pg=document.getElementById('paginationContainer'); if(pg) pg.classList.add('d-none');
+    const tc=document.getElementById('tableScrollContainer'); if(tc) tc.classList.add('d-none');
+    const ch=document.getElementById('directChartSection'); if(ch) ch.classList.add('d-none');
+  }
+  function rcMount(){
+    rcSetStandardUi();
+    const printable=document.getElementById('printableArea');
+    if(!printable)return;
+    let el=document.getElementById('realCountBridge');
+    if(!el){el=document.createElement('div');el.id='realCountBridge';printable.appendChild(el);}
+    return el;
+  }
+  function rcCandidateName(i){
+    const c=rcData.candidates?.[i]; return c?.name || ('Calon 0'+(i+1));
+  }
+  function rcRender(){
+    const el=rcMount(); if(!el)return;
+    const t1=rcData.tps1||{},t2=rcData.tps2||{};
+    const totals=[1,2,3,4,5].map(i=>nRC(t1['c'+i])+nRC(t2['c'+i]));
+    const sah1=nRC(t1.c1)+nRC(t1.c2)+nRC(t1.c3)+nRC(t1.c4)+nRC(t1.c5);
+    const sah2=nRC(t2.c1)+nRC(t2.c2)+nRC(t2.c3)+nRC(t2.c4)+nRC(t2.c5);
+    const invalid=nRC(t1.invalid)+nRC(t2.invalid);
+    const masuk=rcSum(t1)+rcSum(t2);
+    const sah=sah1+sah2;
+    const totalDpt=RC_DPT1+RC_DPT2;
+    const part=totalDpt?((masuk/totalDpt)*100):0;
+    const complete=(rcSum(t1)>=RC_DPT1 && rcSum(t2)>=RC_DPT2);
+    let rows='';
+    for(let i=0;i<5;i++){
+      const c=rcData.candidates?.[i]||{};
+      const photo=rcSafePhoto(c.photo);
+      rows+=`<tr><td><div class="rc-candidate"><span class="rc-num">${i+1}.</span>${photo?`<img class="rc-photo" src="${escRC(photo)}" onerror="this.style.display='none'">`:''}<span>${escRC(rcCandidateName(i))}</span></div></td><td>${fmtRC(t1['c'+(i+1)])}</td><td>${fmtRC(t2['c'+(i+1)])}</td><td class="rc-total">${fmtRC(totals[i])}</td></tr>`;
+    }
+    el.innerHTML=`
+      <div class="rc-head"><h3 class="rc-title"><i class="fas fa-chart-line me-2"></i>Real Count Pilkades Payo Lebar 2026</h3><div class="rc-sub">Dashboard Hasil Perolehan Suara</div></div>
+      <div class="rc-grid">
+        <div class="rc-card"><div class="rc-label">Total DPT</div><div class="rc-value">${fmtRC(totalDpt)}</div></div>
+        <div class="rc-card"><div class="rc-label">Total Suara Masuk</div><div class="rc-value">${fmtRC(masuk)}</div><div class="rc-status">${part.toFixed(2)}% dari DPT</div></div>
+        <div class="rc-card"><div class="rc-label">Suara Sah</div><div class="rc-value">${fmtRC(sah)}</div></div>
+        <div class="rc-card"><div class="rc-label">Suara Tidak Sah</div><div class="rc-value">${fmtRC(invalid)}</div></div>
+      </div>
+      <div class="rc-table-wrap"><table><thead><tr><th style="text-align:left">No & Nama Calon</th><th>TPS 01<span class="rc-tps">Padepokan PSHT • DPT ${fmtRC(RC_DPT1)}</span></th><th>TPS 02<span class="rc-tps">GOR KUD • DPT ${fmtRC(RC_DPT2)}</span></th><th>Total Suara</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td class="rc-total">SUARA TIDAK SAH</td><td class="rc-total">${fmtRC(t1.invalid)}</td><td class="rc-total">${fmtRC(t2.invalid)}</td><td class="rc-total">${fmtRC(invalid)}</td></tr><tr><td class="rc-total">TOTAL SUARA MASUK</td><td class="rc-total">${fmtRC(rcSum(t1))}</td><td class="rc-total">${fmtRC(rcSum(t2))}</td><td class="rc-total">${fmtRC(masuk)}</td></tr></tfoot></table></div>
+      <div class="rc-admin">
+        <h6><i class="fas fa-lock me-2"></i>Panel Admin Real Count</h6>
+        <div id="rcLoginArea" class="${rcAdminPin?'d-none':''}"><p class="small text-muted mb-2">Akses pengelolaan data suara.</p><div class="rc-login"><input id="rcPin" type="password" class="form-control" placeholder="Masukkan PIN Admin Real Count"><button class="btn btn-danger fw-bold" onclick="window.__rcLogin()"><i class="fas fa-sign-in-alt me-1"></i>Masuk</button></div></div>
+        <div id="rcEditorArea" class="${rcAdminPin?'':'d-none'}">${rcEditorHtml(t1,t2)}<div class="rc-actions"><button class="btn btn-outline-secondary fw-bold" onclick="window.__rcLogout()">Keluar Admin</button><button id="rcSaveBtn" class="btn btn-danger fw-bold" onclick="window.__rcSave()"><i class="fas fa-save me-1"></i>Simpan ke REAL COUNT</button></div></div>
+      </div>`;
+  }
+  function rcEditorHtml(t1,t2){
+    const box=(prefix,label,dpt,t)=>{let h=`<div class="rc-tps-box"><h6>${label} <small class="text-muted">(DPT ${fmtRC(dpt)})</small></h6>`;for(let i=1;i<=5;i++)h+=`<div class="rc-field"><label>Calon ${i} — ${escRC(rcCandidateName(i-1))}</label><input id="rc_${prefix}_c${i}" type="number" min="0" step="1" class="form-control form-control-sm" value="${nRC(t['c'+i])}"></div>`;h+=`<div class="rc-field"><label>Suara Tidak Sah</label><input id="rc_${prefix}_invalid" type="number" min="0" step="1" class="form-control form-control-sm" value="${nRC(t.invalid)}"></div></div>`;return h;};
+    return `<div class="rc-input-grid">${box('t1','TPS 01 — Padepokan PSHT',RC_DPT1,t1)}${box('t2','TPS 02 — GOR KUD',RC_DPT2,t2)}</div>`;
+  }
+  window.__rcLoadCandidateProfile=rcLoadCandidateProfile;
+
+  function rcRenderCandidateProfiles(){
+    const table=document.getElementById('dataTable');
+    if(!table) return;
+    const candidates=Array.isArray(rcData.candidates)?rcData.candidates:[];
+    if(!candidates.length){
+      table.innerHTML='<tbody><tr><td class="text-center py-5 text-muted">Data profil calon belum tersedia.</td></tr></tbody>';
+      return;
+    }
+    const cards=candidates.map((c,i)=>{
+      const name=escRC(c?.name || ('Calon 0'+(i+1)));
+      const photo=rcSafePhoto(c?.photo);
+      const vision=escRC(c?.vision || c?.visi || 'Visi belum diisi.');
+      const missionRaw=c?.mission || c?.misi || '';
+      const mission=escRC(missionRaw || 'Misi belum diisi.').replace(/\n/g,'<br>');
+      const img=photo ? `<img src="${escRC(photo)}" alt="Foto calon ${name}" class="rc-profile-photo" onerror="this.style.display='none'">` : `<div class="rc-profile-photo rc-profile-placeholder"><i class="fas fa-user"></i></div>`;
+      return `<div class="rc-profile-card"><div class="rc-profile-number">${i+1}</div>${img}<div class="rc-profile-name">${name}</div><div class="rc-profile-vision"><strong>Visi</strong>${vision}</div><div class="rc-profile-mission"><strong>Misi</strong>${mission}</div></div>`;
+    }).join('');
+    table.innerHTML=`<tbody><tr><td class="p-3"><div class="rc-profile-grid">${cards}</div></td></tr></tbody>`;
+    const info=document.getElementById('pageInfo'); if(info) info.innerText=`${candidates.length} calon`;
+    const pag=document.getElementById('paginationList'); if(pag) pag.innerHTML='';
+    const rowsSelect=document.getElementById('rowsPerPageSelect'); if(rowsSelect && rowsSelect.parentElement) rowsSelect.parentElement.classList.add('d-none');
+  }
+
+  async function rcLoadCandidateProfile(){
+    try{
+      const res=await fetch(RC_URL+'?t='+Date.now(),{cache:'no-store'});
+      if(!res.ok) throw new Error('Server data suara tidak merespons.');
+      const data=await res.json();
+      if(!data || !Array.isArray(data.candidates)) throw new Error('Format data profil calon tidak valid.');
+      rcData=data; rcLoaded=true; rcRenderCandidateProfiles();
+    }catch(e){
+      console.error('Gagal memuat profil calon dari REAL COUNT:',e);
+      showToast('Profil calon gagal dimuat.', 'bg-warning');
+    }
+  }
+
+  window.__rcLoadCandidateProfile=rcLoadCandidateProfile;
+
+  async function rcFetch(){
+    const res=await fetch(RC_URL+'?t='+Date.now(),{cache:'no-store'}); if(!res.ok)throw new Error('Server REAL COUNT tidak merespons.');
+    const data=await res.json(); if(!data||!data.tps1||!data.tps2)throw new Error('Format data REAL COUNT tidak valid.');
+    rcData=data;rcLoaded=true;rcRender();
+  }
+  window.__rcLogin=async function(){
+    const pin=(document.getElementById('rcPin')?.value||'').trim(); if(!pin){alert('Masukkan PIN Admin Real Count.');return;}
+    try{const r=await fetch(RC_URL+'?action=verifyPin&pin='+encodeURIComponent(pin)+'&t='+Date.now(),{cache:'no-store'});const d=await r.json();if(d.status!=='success'){alert(d.message||'PIN Admin Real Count salah.');return;}rcAdminPin=pin;rcRender();}catch(e){alert('Gagal terhubung ke server data suara.');}
+  };
+  window.__rcLogout=function(){rcAdminPin='';rcRender();};
+  window.__rcSave=async function(){
+    if(!rcAdminPin){alert('Silakan login Admin Real Count terlebih dahulu.');return;}
+    const get=id=>nRC(document.getElementById(id)?.value);
+    const vals={t1_c1:get('rc_t1_c1'),t1_c2:get('rc_t1_c2'),t1_c3:get('rc_t1_c3'),t1_c4:get('rc_t1_c4'),t1_c5:get('rc_t1_c5'),t1_invalid:get('rc_t1_invalid'),t2_c1:get('rc_t2_c1'),t2_c2:get('rc_t2_c2'),t2_c3:get('rc_t2_c3'),t2_c4:get('rc_t2_c4'),t2_c5:get('rc_t2_c5'),t2_invalid:get('rc_t2_invalid')};
+    const s1=vals.t1_c1+vals.t1_c2+vals.t1_c3+vals.t1_c4+vals.t1_c5+vals.t1_invalid,s2=vals.t2_c1+vals.t2_c2+vals.t2_c3+vals.t2_c4+vals.t2_c5+vals.t2_invalid;
+    if(s1>RC_DPT1){alert('Total suara TPS 01 melebihi DPT 2.113.');return;} if(s2>RC_DPT2){alert('Total suara TPS 02 melebihi DPT 2.072.');return;}
+    const btn=document.getElementById('rcSaveBtn');if(btn){btn.disabled=true;btn.innerText='Menyimpan...';}
+    try{const q=new URLSearchParams({action:'save',pin:rcAdminPin,...Object.fromEntries(Object.entries(vals).map(([k,v])=>[k,String(v)]))});const r=await fetch(RC_URL+'?'+q.toString(),{cache:'no-store'});const d=await r.json();if(d.status!=='success')throw new Error(d.message||'Gagal menyimpan.');alert('Data Real Count berhasil disimpan.');await rcFetch();}catch(e){alert(e.message||'Gagal menyimpan data Real Count.');}finally{if(btn){btn.disabled=false;btn.innerHTML='<i class="fas fa-save me-1"></i>Simpan ke REAL COUNT';}}
+  };
+  window.__rcLoad=async function(element,force){
+    activeSheet='INPUT SUARA';
+    document.body.classList.add('realcount-active');
+    const title=document.getElementById('currentTitle');if(title)title.innerText='LIVE REAL-COUNT';
+    const chartTitle=document.getElementById('directChartTitle');if(chartTitle)chartTitle.innerText='REAL COUNT';
+    if(element){document.querySelectorAll('.sidebar .nav-link').forEach(x=>x.classList.remove('active'));element.classList.add('active');}
+    rcMount();
+    const el=document.getElementById('realCountBridge');
+    if(el){
+      el.style.display='';
+      el.innerHTML='<div class="text-center py-5 text-muted"><i class="fas fa-spinner fa-spin fa-2x mb-3 text-danger"></i><p>Memuat hasil perolehan suara terbaru...</p></div>';
+    }
+    try{await rcFetch();}catch(e){if(el)el.innerHTML='<div class="alert alert-danger"><b>Gagal memuat Real Count.</b><br>'+escRC(e.message)+'</div>';}
+  };
+  const originalLoadSheetData=window.loadSheetData;
+
+  // Pastikan perpindahan dari Live Real-Count ke menu lain benar-benar
+  // mengembalikan UI tabel normal. Sebelumnya bridge hanya memproses INPUT SUARA,
+  // tetapi elemen/kelas Real-Count dapat tertinggal sehingga menu lain terlihat rusak.
+  function rcRestoreNormalUi(){
+    document.body.classList.remove('realcount-active');
+
+    const bridge=document.getElementById('realCountBridge');
+    if(bridge){
+      bridge.style.display='none';
+      bridge.innerHTML='';
+    }
+
+    const filterAndAction=document.getElementById('filterAndActionContainer');
+    const pagination=document.getElementById('paginationContainer');
+    const tableScroll=document.getElementById('tableScrollContainer');
+    const printable=document.getElementById('printableArea');
+
+    if(filterAndAction) filterAndAction.classList.remove('d-none');
+    if(pagination) pagination.classList.remove('d-none');
+    if(tableScroll) tableScroll.classList.remove('d-none');
+    if(printable) printable.classList.remove('d-none');
+
+    // Biarkan loadSheetData asli menentukan apakah grafik/filter perlu tampil
+    // sesuai menu yang dipilih.
+    const chart=document.getElementById('directChartSection');
+    const chartBtn=document.getElementById('toggleChartBtn');
+    if(chart) chart.classList.add('d-none');
+    if(chartBtn) chartBtn.classList.add('d-none');
+  }
+
+  window.loadSheetData=function(sheetName,element,forceRefresh,preserveView){
+    if(sheetName==='INPUT SUARA'){
+      return window.__rcLoad(element,forceRefresh);
+    }
+
+    rcRestoreNormalUi();
+    return originalLoadSheetData.apply(this,arguments);
+  };
+
+  const originalRefresh=window.refreshData;
+  window.refreshData=function(){
+    if(activeSheet==='INPUT SUARA')return window.__rcLoad(null,true);
+    return originalRefresh.apply(this,arguments);
+  };
+})();
+</script>
+
 </body>
 </html>
