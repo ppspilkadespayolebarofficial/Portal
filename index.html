@@ -1042,9 +1042,9 @@ body.realcount-active #directChartSection{display:none!important}
                             <option value="2">2 - Ganda (TMS)</option>
                             <option value="3">3 - TNI (TMS)</option>
                             <option value="4">4 - Polisi (TMS)</option>
-                            <option value="5">5 - Pindah domisili Luar Desa (TMS)</option>
+                            <option value="5">5 - Pindah doli Luar Desa (TMS)</option>
                             <option value="8">8 - Lainnya (TMS)</option>
-                            <option value="6">6 - Pindah Domisili Dalam Desa (Pindah RT 1 s.d 36)</option>
+                            <option value="6">6 - Pindah Doli Dalam Desa (Pindah RT 1 s.d 36)</option>
                             <option value="7">7 - Pisah KK (Buat NKK & Anggota Keluarga Baru)</option>
                             <option value="U">U - Ubah</option>
                             <option value="B">B - Baru</option>
@@ -1059,7 +1059,7 @@ body.realcount-active #directChartSection{display:none!important}
                     </div>
 
                     <div id="panelRowPindahLuar" class="border-top pt-3 d-none">
-                        <h6 class="fw-bold text-danger mb-3 text-uppercase"><i class="fas fa-external-link-alt me-1"></i> Detail Pindah Domisili Luar Desa</h6>
+                        <h6 class="fw-bold text-danger mb-3 text-uppercase"><i class="fas fa-external-link-alt me-1"></i> Detail Pindah Doli Luar Desa</h6>
                         <div class="row g-3">
                             <div class="col-md-12">
                                 <label class="form-label small fw-bold text-uppercase">Keterangan Tujuan Pindah:</label>
@@ -1069,7 +1069,7 @@ body.realcount-active #directChartSection{display:none!important}
                     </div>
 
                     <div id="panelRowPindahDalam" class="border-top pt-3 d-none">
-                        <h6 class="fw-bold text-danger mb-3 text-uppercase"><i class="fas fa-exchange-alt me-1"></i> Pindah Domisili Dalam Desa (Pilih RT 1 s.d 36)</h6>
+                        <h6 class="fw-bold text-danger mb-3 text-uppercase"><i class="fas fa-exchange-alt me-1"></i> Pindah Doli Dalam Desa (Pilih RT 1 s.d 36)</h6>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold text-uppercase">Pindah Ke RT Tujuan (1 - 36):</label>
@@ -1452,7 +1452,7 @@ body.realcount-active #directChartSection{display:none!important}
                 <tr><td class="row-index">.</td><td class="align-left ps-4">- Persiapan Pencetakan Surat Suara</td><td>29 hari</td><td>22 Sept - 20 Okt 2026</td></tr>
                 <tr><td class="row-index">10</td><td class="align-left fw-bold">KAMPANYE</td><td>-</td><td>-</td></tr>
                 <tr><td class="row-index">.</td><td class="align-left ps-4">a. Deklarasi/Penandatanganan Pernyataan Pilkades Damai</td><td>1 hari</td><td>21 Okt 2026</td></tr>
-                <tr><td class="row-index">.</td><td class="align-left ps-4">b. Penyampaian visi dan misi/Rapat/Pertemuan/dialog, melalui media massa (cetak/elektronik)</td><td>3 hari</td><td>22-24 Okt 2026</td></tr>
+                <tr><td class="row-index">.</td><td class="align-left ps-4">b. Penyampaian visi dan /Rapat/Pertemuan/dialog, melalui media massa (cetak/elektronik)</td><td>3 hari</td><td>22-24 Okt 2026</td></tr>
                 <tr><td class="row-index">11</td><td class="align-left fw-bold">MASA TENANG</td><td>-</td><td>-</td></tr>
                 <tr><td class="row-index">.</td><td class="align-left ps-4">- Masa tenang dan pembersihan alat peraga</td><td>3 hari</td><td>25-27 Okt 2026</td></tr>
                 <tr><td class="row-index">12</td><td class="align-left fw-bold">DISTRIBUSI ALAT PEMILIHAN</td><td>-</td><td>-</td></tr>
@@ -3506,9 +3506,9 @@ document.addEventListener('click',function(e){
     const cards=candidates.map((c,i)=>{
       const name=escRC(c?.name || ('Calon 0'+(i+1)));
       const photo=rcSafePhoto(c?.photo);
-      const vision=escRC(c?.vision || c?.visi || 'Visi belum diisi.');
+      const vision=escRC(c?.vision || c?.visi || 'Belum masuk tahapan.');
       const missionRaw=c?.mission || c?.misi || '';
-      const mission=escRC(missionRaw || 'Misi belum diisi.').replace(/\n/g,'<br>');
+      const mission=escRC(missionRaw || 'Belum masuk tahapan.').replace(/\n/g,'<br>');
       const img=photo ? `<img src="${escRC(photo)}" alt="Foto calon ${name}" class="rc-profile-photo" onerror="this.style.display='none'">` : `<div class="rc-profile-photo rc-profile-placeholder"><i class="fas fa-user"></i></div>`;
       return `<div class="rc-profile-card"><div class="rc-profile-number">${i+1}</div>${img}<div class="rc-profile-name">${name}</div><div class="rc-profile-vision"><strong>Visi</strong>${vision}</div><div class="rc-profile-mission"><strong>Misi</strong>${mission}</div></div>`;
     }).join('');
