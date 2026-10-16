@@ -1318,8 +1318,8 @@ body.realcount-active #directChartSection{display:none!important}
     }
 
     function updateElectionCountdown() {
-        // Target awal tanggal 29 Oktober 2026 menurut waktu lokal perangkat (WIB bagi pengguna di Indonesia).
-        const target = new Date(2026, 9, 29, 0, 0, 0).getTime();
+        // Target hitung mundur: 28 Oktober 2026 pukul 00.00 waktu lokal perangkat.
+        const target = new Date(2026, 9, 28, 0, 0, 0).getTime();
         const remaining = target - Date.now();
         const ids = ['countdownDays', 'countdownHours', 'countdownMinutes', 'countdownSeconds'];
         const message = document.getElementById('countdownMessage');
@@ -1335,7 +1335,7 @@ body.realcount-active #directChartSection{display:none!important}
             Math.floor((remaining % 60000) / 1000)
         ];
         ids.forEach((id, i) => { const el = document.getElementById(id); if (el) el.textContent = String(values[i]).padStart(2, '0'); });
-        if (message) message.textContent = 'Waktu tersisa sampai pukul 00.00 WIB pada 29 Oktober 2026.';
+        if (message) message.textContent = 'Waktu tersisa sampai pukul 00.00 WIB pada 28 Oktober 2026.';
     }
 
     function formatDate(val) {
